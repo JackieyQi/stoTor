@@ -62,7 +62,7 @@ class NorthShareHold(object):
         :param sto_code:
         :return:
         """
-        self.browser.get(self.single_url)
+        self.browser.get(self.single_url.format(sto_code))
         ele = self.browser.find_element_by_id("tb_cgtj")
         ele_data = ele.text
         if len(ele_data) < 6: return
@@ -125,9 +125,21 @@ def save_single_sto(sto_code):
     cursor = get_cursor()
     _handler = NorthShareHold()
     data = _handler.get_single_data(sto_code)
+    _handler.del_browser()
     if not data: return False
 
     sql = "insert into market_cap (code, cap1, cap5, cap10, date) values (%s, %s, %s, %s, %s);"
     cursor.executemany(sql, data)
     cursor.close()
     return True
+
+def save_daily_market_cap():
+    cursor = get_cursor()
+    # 沪市A股
+    cursor.execute("select code from sto_code where code >= 600000 and code < 700000;")
+    db_data = cursor.fetchall()
+    # 深市A股，中小板
+    cursor.execute("select code from sto_code where code < 2999;")
+    db_data = cursor.fetchall()
+
+
