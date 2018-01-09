@@ -9,7 +9,7 @@ from tornado.httpclient import AsyncHTTPClient
 from tornado import gen
 
 class EMDataRequestHandler(RequestHandler):
-    @gen.cotoutine
+    @gen.coroutine
     def get(self):
         http_client = AsyncHTTPClient()
         resp = yield http_client.fetch("")
@@ -17,7 +17,7 @@ class EMDataRequestHandler(RequestHandler):
 
 
 class EMMarketCapUpdate(RequestHandler):
-    @gen.cotoutine
+    @gen.coroutine
     def get(self):
 
         from capital_flow.market_cap import save_single_sto

@@ -3,4 +3,4 @@
 # @Time: 17-12-30
 # @Author: yyq
 
-CHROME_BROWSER_PATH = "/soft/chromedriver"
+CHROME_BROWSER_PATH = "/home/yyq/gp/chromedriver_linux64/chromedriver"
