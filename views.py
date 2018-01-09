@@ -16,6 +16,17 @@ class EMDataRequestHandler(RequestHandler):
         self.write("over")
 
 
+class EMMarketCapUpdate(RequestHandler):
+    @gen.cotoutine
+    def get(self):
+
+        from capital_flow.market_cap import save_single_sto
+        r = save_single_sto("000001")
+        self.write("update over, r:%s"%repr(r))
+
+
+
 handlers = [
-    (r"/em", EMDataRequestHandler),
+    (r"/tmp_em", EMDataRequestHandler),
+    (r"/emUpdate", EMMarketCapUpdate),
 ]

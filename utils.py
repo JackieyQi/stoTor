@@ -6,10 +6,11 @@
 
 def check_cap_unit(cap):
     if cap.find("亿") > -1:
-        i = float(cap[:-1])
+        i = int(float(cap[:-1]) * 1000000)
         return i
     elif cap.find("万") > -1:
-        i = float(cap[:-1]) / 10000
-        return float("%.7f" % i)
+        i = int(float(cap[:-1]) * 100)
+        return i
+        # return float("%.7f" % i)
     else:
         return 0

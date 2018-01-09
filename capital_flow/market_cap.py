@@ -8,6 +8,7 @@
 """
 
 from data.browser import SimulationChrome
+from data.database import get_cursor
 from utils import check_cap_unit
 
 
@@ -16,6 +17,7 @@ class NorthShareHold(object):
         self.browser = SimulationChrome().browser
 
         self.em_url = "http://data.eastmoney.com/hsgtcg/StockStatistics.aspx?"
+        self.single_url = "http://data.eastmoney.com/hsgtcg/StockHdStatistics.aspx?stock={}"
 
     def del_browser(self):
         self.browser.quit()
@@ -23,7 +25,9 @@ class NorthShareHold(object):
     def get_north_data(self):
         self.browser.get(self.em_url)
         ele = self.browser.find_element_by_id("tb_ggtj")
-        data = ele.text.split("\n")[6:]
+        ele_data = ele.text
+        if len(ele_data) < 6: return
+        data = ele_data.split("\n")[6:]
         result_list = list()
 
         tmp_re = list()
@@ -51,6 +55,26 @@ class NorthShareHold(object):
         cto_day_1, cto_day_5, cto_day_10 = ind_2[7], ind_2[8], ind_2[9]
         return {cto_code: {"date": date, "name": cto_name, "code": cto_code, "price": cto_price, "up": cto_up,
                            "day_1": cto_day_1, "day_5": cto_day_5, "day_10": cto_day_10}}
+
+    def get_single_data(self, sto_code):
+        """
+        note: get last 6 days data
+        :param sto_code:
+        :return:
+        """
+        self.browser.get(self.single_url)
+        ele = self.browser.find_element_by_id("tb_cgtj")
+        ele_data = ele.text
+        if len(ele_data) < 6: return
+        data = ele_data.split("\n")[6:]
+
+        r = list()
+        for _s in data[:6]:
+            _d = _s.split(" ")
+            date = _d[0]
+            cap_1, cap_5, cap_10 = check_cap_unit(_d[-3]), check_cap_unit(_d[-2]), check_cap_unit(_d[-1])
+            r.append((sto_code, cap_1, cap_5, cap_10, date))
+        return r
 
 
 def get_subset(data):
@@ -95,3 +119,15 @@ def get_sort_data():
 
     result = get_subset(data)
     print("r:%s" % result)
+
+
+def save_single_sto(sto_code):
+    cursor = get_cursor()
+    _handler = NorthShareHold()
+    data = _handler.get_single_data(sto_code)
+    if not data: return False
+
+    sql = "insert into market_cap (code, cap1, cap5, cap10, date) values (%s, %s, %s, %s, %s);"
+    cursor.executemany(sql, data)
+    cursor.close()
+    return True
