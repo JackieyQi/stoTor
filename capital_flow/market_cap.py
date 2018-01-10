@@ -7,6 +7,7 @@
 问题：全屏变量browser，多个请求调用，close是关哪一个，上下文相关？
 """
 
+from selenium.webdriver.common.action_chains import ActionChains
 from data.browser import SimulationChrome
 from data.database import get_cursor
 from utils import check_cap_unit, check_code_type
@@ -25,7 +26,7 @@ class NorthShareHold(object):
     def get_north_data_daily(self, codes=None):
         self.browser.get(self.em_url)
 
-        result = list()
+        result = dict()
         while 1:
             ele = self.browser.find_element_by_id("tb_ggtj")
             ele_data = ele.text
@@ -42,10 +43,14 @@ class NorthShareHold(object):
                     if sto_info[0] not in codes:
                         continue
 
-                result.append(sto_info)
+                # check duplicate web page.
+                if sto_info[0] in result:
+                    break
+                result[sto_info[0]] = sto_info
                 data = data[3:]
-            self.browser.find_element_by_partial_link_text("下一页").click()
-        return result
+            ele = self.browser.find_element_by_partial_link_text("下一页")
+            ActionChains(self.browser).move_to_element(ele).click().perform()
+        return list(result.values())
 
     def get_sto_info(self, data):
         """
