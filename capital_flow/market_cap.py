@@ -11,6 +11,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from data.browser import SimulationChrome
 from data.database import get_cursor
 from utils import check_cap_unit, check_code_type
+from config import HSGTCG_EACH_PAGE_NUM
 
 
 class NorthShareHold(object):
@@ -23,7 +24,7 @@ class NorthShareHold(object):
     def del_browser(self):
         self.browser.quit()
 
-    def get_north_data_daily(self, codes=None):
+    def get_north_data_daily(self):
         self.browser.get(self.em_url)
 
         result, pre_length = dict(), 0
@@ -39,9 +40,6 @@ class NorthShareHold(object):
                 if len(_d) < 3:
                     break
                 sto_info = self.get_sto_info(_d)
-                if codes:
-                    if sto_info[0] not in codes:
-                        continue
 
                 # check duplicate web page.
                 if sto_info[0] in result:
@@ -49,13 +47,13 @@ class NorthShareHold(object):
                 result[sto_info[0]] = sto_info
                 data = data[3:]
 
-            if len(result) == pre_length:
+            if 0 < len(result)-pre_length < HSGTCG_EACH_PAGE_NUM:
                 break
             pre_length = len(result)
 
             ele = self.browser.find_element_by_partial_link_text("下一页")
             ActionChains(self.browser).move_to_element(ele).click().perform()
-        return list(result.values())
+        return result
 
     def get_sto_info(self, data):
         """
@@ -165,8 +163,14 @@ def save_daily_market_cap():
         sto_codes.append(sto_code)
 
     _handler = NorthShareHold()
-    data = _handler.get_north_data_daily(sto_codes)
+    all_data = _handler.get_north_data_daily()
     _handler.del_browser()
+
+    data = list()
+    for _key in all_data:
+        if _key not in sto_codes:
+            continue
+        data.append(all_data.get(_key))
     if not data: return False
 
     sql = "insert into market_cap (code, cap1, cap5, cap10, date) values (%s, %s, %s, %s, %s);"
@@ -186,8 +190,8 @@ def check_extra_daily_market_cap():
         cursor.close()
         return False
     db_data = list(cursor.fetchall())
-    db_data.reverse()
-    _date = db_data[5]
-    cursor.execute("delete from market_cap where date < %s;" % _date)
+    db_data.sort()
+    _date = db_data[-6][0]
+    cursor.execute("delete from market_cap where date < '%s';" % _date)
     cursor.close()
     return True
