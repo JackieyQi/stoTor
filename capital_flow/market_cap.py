@@ -9,7 +9,7 @@
 
 from data.browser import SimulationChrome
 from data.database import get_cursor
-from utils import check_cap_unit
+from utils import check_cap_unit, check_code_type
 
 
 class NorthShareHold(object):
@@ -22,39 +22,43 @@ class NorthShareHold(object):
     def del_browser(self):
         self.browser.quit()
 
-    def get_north_data(self):
+    def get_north_data_daily(self, codes=None):
         self.browser.get(self.em_url)
-        ele = self.browser.find_element_by_id("tb_ggtj")
-        ele_data = ele.text
-        if len(ele_data) < 6: return
-        data = ele_data.split("\n")[6:]
-        result_list = list()
 
-        tmp_re = list()
+        result = list()
         while 1:
-            _d = data[:3]
-            if len(_d) < 3:
+            ele = self.browser.find_element_by_id("tb_ggtj")
+            ele_data = ele.text
+            if len(ele_data) < 6:
                 break
-            cto_info = self.get_cto_info(_d)
-            result_list.append(list(cto_info.values())[0])
+            data = ele_data.split("\n")[6:]
 
-            tmp_re.append(cto_info)
+            while 1:
+                _d = data[:3]
+                if len(_d) < 3:
+                    break
+                sto_info = self.get_sto_info(_d)
+                if codes:
+                    if sto_info[0] not in codes:
+                        continue
 
-            data = data[3:]
+                result.append(sto_info)
+                data = data[3:]
+            self.browser.find_element_by_partial_link_text("下一页").click()
+        return result
 
-        return result_list
-
-    def get_cto_info(self, data):
+    def get_sto_info(self, data):
         """
         :param data: ['2017-12-19 600519', '贵州茅台', '详细 数据 667.09 0.20 7306.33万 487.40亿 5.60 8180.53万 1996.68万 51.32亿']
         :return:
         """
-        ind_0, cto_name, ind_2 = data[0].split(" "), data[1], data[2].split(" ")
-        date, cto_code = ind_0[0], ind_0[1]
-        cto_price, cto_up = ind_2[2], ind_2[3] + "%"
-        cto_day_1, cto_day_5, cto_day_10 = ind_2[7], ind_2[8], ind_2[9]
-        return {cto_code: {"date": date, "name": cto_name, "code": cto_code, "price": cto_price, "up": cto_up,
-                           "day_1": cto_day_1, "day_5": cto_day_5, "day_10": cto_day_10}}
+        ind_0, sto_name, ind_2 = data[0].split(" "), data[1], data[2].split(" ")
+        date, sto_code = ind_0[0], ind_0[1]
+        sto_price, sto_up = ind_2[2], ind_2[3] + "%"
+        sto_day_1, sto_day_5, sto_day_10 = check_cap_unit(ind_2[7]), check_cap_unit(ind_2[8]), check_cap_unit(ind_2[9])
+        return sto_code, sto_day_1, sto_day_5, sto_day_10, date
+        # return {sto_code: {"date": date, "name": sto_name, "code": sto_code, "price": sto_price, "up": sto_up,
+        #                    "day_1": sto_day_1, "day_5": sto_day_5, "day_10": sto_day_10}}
 
     def get_single_data(self, sto_code):
         """
@@ -136,10 +140,44 @@ def save_single_sto(sto_code):
 def save_daily_market_cap():
     cursor = get_cursor()
     # 沪市A股
+    sto_codes = list()
     cursor.execute("select code from sto_code where code >= 600000 and code < 700000;")
     db_data = cursor.fetchall()
+    for _d in db_data:
+        sto_code = check_code_type(_d[0])
+        sto_codes.append(sto_code)
+
     # 深市A股，中小板
     cursor.execute("select code from sto_code where code < 2999;")
     db_data = cursor.fetchall()
+    for _d in db_data:
+        sto_code = check_code_type(_d[0])
+        sto_codes.append(sto_code)
 
+    _handler = NorthShareHold()
+    data = _handler.get_north_data_daily()
+    _handler.del_browser()
+    if not data: return False
 
+    sql = "insert into market_cap (code, cap1, cap5, cap10, date) values (%s, %s, %s, %s, %s);"
+    cursor.executemany(sql, data)
+    cursor.close()
+
+    check_extra_daily_market_cap()
+    return True
+
+def check_extra_daily_market_cap():
+    """
+    note: only save 6 data to db.
+    """
+    cursor = get_cursor()
+    count = cursor.execute("select date from market_cap where code = '000001';")
+    if count <= 6:
+        cursor.close()
+        return False
+    db_data = list(cursor.fetchall())
+    db_data.reverse()
+    _date = db_data[5]
+    cursor.execute("delete from market_cap where date < %s;" % _date)
+    cursor.close()
+    return True
