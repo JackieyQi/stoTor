@@ -26,7 +26,7 @@ class NorthShareHold(object):
     def get_north_data_daily(self, codes=None):
         self.browser.get(self.em_url)
 
-        result = dict()
+        result, pre_length = dict(), 0
         while 1:
             ele = self.browser.find_element_by_id("tb_ggtj")
             ele_data = ele.text
@@ -48,6 +48,11 @@ class NorthShareHold(object):
                     break
                 result[sto_info[0]] = sto_info
                 data = data[3:]
+
+            if len(result) == pre_length:
+                break
+            pre_length = len(result)
+
             ele = self.browser.find_element_by_partial_link_text("下一页")
             ActionChains(self.browser).move_to_element(ele).click().perform()
         return list(result.values())
@@ -160,7 +165,7 @@ def save_daily_market_cap():
         sto_codes.append(sto_code)
 
     _handler = NorthShareHold()
-    data = _handler.get_north_data_daily()
+    data = _handler.get_north_data_daily(sto_codes)
     _handler.del_browser()
     if not data: return False
 
