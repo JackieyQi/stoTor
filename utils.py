@@ -3,6 +3,29 @@
 # @Time: 17-12-31
 # @Author: yyq
 
+from datetime import datetime, timedelta
+from random import randint
+
+
+def get_time_inter(inter=1):
+    today = get_today()
+    today_w = int(today.strftime("%w"))
+    if today_w == 0:
+        return str(today - timedelta(inter + 2)), str(today - timedelta(2))
+    elif today_w == 6:
+        return str(today - timedelta(inter + 1)), str(today - timedelta(1))
+    else:
+        if get_hour() >= 18: inter -= 1
+        return str(today - timedelta(inter)), str(today)
+
+
+def get_today():
+    return datetime.today().date()
+
+
+def get_hour():
+    return datetime.today().hour
+
 
 def check_cap_unit(cap):
     if cap.find("亿") > -1:
@@ -26,3 +49,9 @@ def check_code_type(code):
     else:
         code = "00000" + code
         return code[-6:]
+
+
+def get_random(n=13):
+    start = 10 ** (n - 1)
+    end = (10 ** n) - 1
+    return str(randint(start, end))
