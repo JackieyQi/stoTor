@@ -7,10 +7,12 @@
 问题：全屏变量browser，多个请求调用，close是关哪一个，上下文相关？
 """
 
+import numpy
 from selenium.webdriver.common.action_chains import ActionChains
 from data.browser import SimulationChrome
 from data.database import get_cursor
-from utils import check_cap_unit, check_code_type
+from data.sto_code import upper_sto
+from utils import check_cap_unit, code_int2str
 from config import HSGTCG_EACH_PAGE_NUM
 
 
@@ -65,8 +67,6 @@ class NorthShareHold(object):
         sto_price, sto_up = ind_2[2], ind_2[3] + "%"
         sto_day_1, sto_day_5, sto_day_10 = check_cap_unit(ind_2[7]), check_cap_unit(ind_2[8]), check_cap_unit(ind_2[9])
         return sto_code, sto_day_1, sto_day_5, sto_day_10, date
-        # return {sto_code: {"date": date, "name": sto_name, "code": sto_code, "price": sto_price, "up": sto_up,
-        #                    "day_1": sto_day_1, "day_5": sto_day_5, "day_10": sto_day_10}}
 
     def get_single_data(self, sto_code):
         """
@@ -87,6 +87,7 @@ class NorthShareHold(object):
             cap_1, cap_5, cap_10 = check_cap_unit(_d[-3]), check_cap_unit(_d[-2]), check_cap_unit(_d[-1])
             r.append((sto_code, cap_1, cap_5, cap_10, date))
         return r
+
 
 
 def get_subset(data):
@@ -152,14 +153,14 @@ def save_daily_market_cap():
     cursor.execute("select code from sto_code where code >= 600000 and code < 700000;")
     db_data = cursor.fetchall()
     for _d in db_data:
-        sto_code = check_code_type(_d[0])
+        sto_code = code_int2str(_d[0])
         sto_codes.append(sto_code)
 
     # 深市A股，中小板
     cursor.execute("select code from sto_code where code < 2999;")
     db_data = cursor.fetchall()
     for _d in db_data:
-        sto_code = check_code_type(_d[0])
+        sto_code = code_int2str(_d[0])
         sto_codes.append(sto_code)
 
     _handler = NorthShareHold()
@@ -168,10 +169,14 @@ def save_daily_market_cap():
 
     data = list()
     for _key in all_data:
-        if _key not in sto_codes:
+        if int(_key) not in sto_codes:
             continue
         data.append(all_data.get(_key))
     if not data: return False
+
+    count = cursor.execute("SELECT id from market_cap where date='%s' LIMIT 1;"%data[0][-1])
+    if count > 0:
+        return True
 
     sql = "insert into market_cap (code, cap1, cap5, cap10, date) values (%s, %s, %s, %s, %s);"
     cursor.executemany(sql, data)
@@ -195,3 +200,49 @@ def check_extra_daily_market_cap():
     cursor.execute("delete from market_cap where date < '%s';" % _date)
     cursor.close()
     return True
+
+def get_market_cap_change_data():
+    cursor = get_cursor()
+    cursor.execute("select * from market_cap;")
+
+    r = dict()
+    for d in cursor.fetchall():
+        _, code, cap1, cap5, cap10, date = d
+        if code not in upper_sto:
+            continue
+
+        if code not in r:
+            r[code] = [[cap1, cap5, cap10, date], ]
+        else:
+            r[code].append([cap1, cap5, cap10, date])
+
+    final_r = list()
+    _f = list()
+    for k, v_lst in r.items():
+        tf = get_market_cap_tend(k, v_lst)
+        if tf:
+            final_r.append(k)
+        else:
+            _f.append(k)
+    return final_r, _f
+
+
+def get_market_cap_tend(code, cap_lst):
+    cap_lst.sort(key=lambda x:x[3])
+    matrix = numpy.array(cap_lst)
+
+    # for i in range(matrix.shape[1]):
+    #     cap = matrix[:, i]
+    cap_1 = matrix[:, 0]
+    gap_1_5 = int(cap_1[5]) - int(cap_1[4])
+    gap_1_4 = int(cap_1[4]) - int(cap_1[3])
+    gap_1_3 = int(cap_1[3]) - int(cap_1[2])
+    gap_1_2 = int(cap_1[2]) - int(cap_1[1])
+    gap_1_1 = int(cap_1[1]) - int(cap_1[0])
+    if gap_1_5 > 0 and gap_1_4 > 0:
+        return True
+
+    cap_5 = matrix[:, 1]
+    cap_10 = matrix[:, 2]
+    date = matrix[:, 3]
+    return False

@@ -39,7 +39,7 @@ def check_cap_unit(cap):
         return 0
 
 
-def check_code_type(code):
+def code_int2str(code):
     """
     note: sto code int to standard string
     """

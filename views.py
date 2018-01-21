@@ -25,6 +25,13 @@ class EMMarketCapUpdate(RequestHandler):
         self.write("update over, r:%s \n" % repr(r))
 
 
+class CommendStoHandler(RequestHandler):
+    def get(self):
+        from capital_flow.market_cap import get_market_cap_change_data
+        a, b = get_market_cap_change_data()
+        self.write("commend data, a:%s, b:%s" % (a, b))
+
+
 class CronAddStoCode(RequestHandler):
     def get(self):
         from data.sto_code import save_sto_code
@@ -47,6 +54,7 @@ class CronUpdateMarketCap(RequestHandler):
 common_handlers = [
     (r"/tmp_em", EMDataRequestHandler),
     # (r"/emUpdate", EMMarketCapUpdate),
+    (r"/commendSto", CommendStoHandler),
 ]
 
 cron_handlers = [

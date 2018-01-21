@@ -5,26 +5,80 @@
 
 import requests
 from utils import get_time_inter
+from data.sto_code import upper_sto
 
 class LhBillboard(object):
     def __init__(self, top_time_inter=1):
-        if top_time_inter not in (1, 3, 5):
-            self.top_time_inter = 1
-        else:
-            self.top_time_inter = top_time_inter
+        self.top_time_inter = top_time_inter
+        self.time_inter_min = 1
+        self.time_inter_max = 14
 
         # self.em_url = "http://data.eastmoney.com/DataCenter_V3/stock2016/TradeDetail/pagesize=200,page=1,sortRule=-1," \
         #               "sortType=,startDate={},endDate={},gpfw=0,js=vardata_tab_1.html"
-        self.em_url = "http://datainterface3.eastmoney.com//EM_DataCenter_V3/api/LHBGGDRTJ/GetLHBGGDRTJ?" \
-                      "tkn=eastmoney&mkt=0&dateNum=&startDateTime={}7&endDateTime={}&sortRule=1&sortColumn=&pageNum=2&pageSize=200&cfg=lhbggdrtj"
+        self.lhb_daily_url = "http://datainterface3.eastmoney.com//EM_DataCenter_V3/api/LHBGGDRTJ/GetLHBGGDRTJ?" \
+                      "tkn=eastmoney&mkt=0&dateNum=&startDateTime={}7&endDateTime={}&sortRule=1&sortColumn=&pageNum=1&pageSize=200&cfg=lhbggdrtj"
 
-    def get_top_list(self):
-        start_date, end_date = get_time_inter(self.top_time_inter)
+    def get_top_list(self, time_inter):
+        start_date, end_date = get_time_inter(time_inter)
 
-        resp = requests.get(self.em_url.format(start_date, end_date))
+        resp = requests.get(self.lhb_daily_url.format(start_date, end_date))
         if not resp:
             return
         data = resp.json().get("Data")[0].get("Data")
-        # [0].get("FieldName")
         if len(data) == 0:
             return
+
+        r = dict()
+        for d in data:
+            lst = d.split("|")
+            # change_ratio: -7.9184=>-7.92%
+            # turnover: 1.57=>1.57%
+            code, change_ratio, turnover = lst[0], lst[3], lst[4]
+            if not self.check_list_data(code):
+                continue
+
+            if code not in r:
+                r[code] = [[change_ratio, turnover], ]
+            elif code in r:
+                r[code].append([change_ratio, turnover])
+        return r
+
+    def check_list_data(self, code):
+        if code[0] == "3":
+            return False
+        elif code not in upper_sto:
+            return False
+        else:
+            return True
+
+    def get_list_ratio(self):
+        _r_min = self.get_top_list(self.time_inter_min)
+        r_min = sorted(_r_min.items(), key=lambda x:len(x[1]), reverse=True)
+
+        _r_max = self.get_top_list(self.time_inter_max)
+        r_max = sorted(_r_max.items(), key=lambda x:len(x[1]), reverse=True)
+
+        key_code = list()
+        for k, v in _r_max.items():
+            if len(v) == 1:
+                continue
+            if k in _r_min:
+                key_code.append(k)
+
+        for k, v_lst in r_max[:10]:
+            if len(v_lst) == 1:
+                continue
+            key_code.append(k)
+
+        for k, v_lst in r_min[:5]:
+            if len(v_lst) == 1:
+                continue
+            key_code.append(k)
+
+        result = list()
+        for code in key_code:
+            if len(result) == 5:
+                return
+            elif code not in result:
+                result.append(code)
+        return result

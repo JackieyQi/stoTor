@@ -34,8 +34,8 @@ class SScheduler(object):
     def init_main_job(self):
         # 每日持股数值更新
         from capital_flow.market_cap import save_daily_market_cap
-        self.scheduler.add_job(save_daily_market_cap, "cron", day_of_week="mon-fri", hour=9)
+        self.scheduler.add_job(save_daily_market_cap, "cron", day_of_week="tue-sat", hour=9)
 
         # 多一分钟再请求
-        from real_quotes.sea_mind import save_k_data
+        from real_quotes.mind import save_k_data
         self.scheduler.add_job(save_k_data, "cron", day_of_week="mon-fri", hour="9-15", minute="*/5")

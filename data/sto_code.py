@@ -6,7 +6,9 @@
 import requests
 from config import STO_DAILY_AMOUNT_UP5
 from data.database import get_cursor
+from utils import code_int2str
 
+upper_sto = list()
 
 class StoCode(object):
     def __init__(self):
@@ -40,9 +42,8 @@ class StoCode(object):
                 # result.append({"symbol": code, "name": name})
 
                 # type in database is int, not string
-                code = int(code)
                 type = self.set_sto_type(money_amount)
-                result[code]=[name, symbol, type]
+                result[int(code)]=[name, symbol, type]
             count += 1
         return result
 
@@ -71,7 +72,18 @@ def update_sto_code():
     if not data: return False
     in_data = [v+[k,] for k, v in data.items()]
 
-    sql = "update sto_code set code = %s, name=%s, symbol=%s, type=%s where code = %s;"
+    sql = "update sto_code set name=%s, symbol=%s, type=%s where code = %s;"
     cursor.executemany(sql, in_data)
     cursor.close()
     return True
+
+def init_upper_sto():
+    cursor = get_cursor()
+    global upper_sto
+
+    sql = "select code from sto_code where type = %s;" % STO_DAILY_AMOUNT_UP5
+    cursor.execute(sql)
+    db_data = cursor.fetchall()
+    for d in db_data:
+        sto_code = code_int2str(d[0])
+        upper_sto.append(sto_code)

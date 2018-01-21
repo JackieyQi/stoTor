@@ -21,6 +21,9 @@ def main():
     http_server = tornado.httpserver.HTTPServer(app, xheaders=True)
     http_server.listen(tornado.options.options.port, tornado.options.options.ip)
 
+    from data.sto_code import init_upper_sto
+    init_upper_sto()
+
     from data.schedule import SScheduler
     SScheduler().init_main_job()
 

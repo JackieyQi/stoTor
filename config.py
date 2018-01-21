@@ -12,6 +12,6 @@ HSGTCG_EACH_PAGE_NUM = 50
 STO_DAILY_AMOUNT_UP5 = 1
 
 # schedule config
-SCHEDULE_JOBSTORES_URL = "mysql://root:pwd@localhost/database"
+SCHEDULE_JOBSTORES_URL = "mysql+pymysql://root:pwd@localhost/database"
 EXECUTOR_POOL_THREADS = 10
 EXECUTOR_POOL_PROCESSES = 5
