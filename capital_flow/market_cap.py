@@ -13,7 +13,7 @@ from data.browser import SimulationChrome
 from data.database import get_cursor
 from data.sto_code import upper_sto
 from utils import check_cap_unit, code_int2str
-from config import HSGTCG_EACH_PAGE_NUM
+from config import HSGTCG_EACH_PAGE_NUM, NORTH_SHARE_HOLD_DAILY_COUNT
 
 
 class NorthShareHold(object):
@@ -70,7 +70,7 @@ class NorthShareHold(object):
 
     def get_single_data(self, sto_code):
         """
-        note: get last 6 days data
+        note: get last NORTH_SHARE_HOLD_DAILY_COUNT days data
         :param sto_code:
         :return:
         """
@@ -81,7 +81,7 @@ class NorthShareHold(object):
         data = ele_data.split("\n")[6:]
 
         r = list()
-        for _s in data[:6]:
+        for _s in data[:NORTH_SHARE_HOLD_DAILY_COUNT]:
             _d = _s.split(" ")
             date = _d[0]
             cap_1, cap_5, cap_10 = check_cap_unit(_d[-3]), check_cap_unit(_d[-2]), check_cap_unit(_d[-1])
@@ -191,12 +191,12 @@ def check_extra_daily_market_cap():
     """
     cursor = get_cursor()
     count = cursor.execute("select date from market_cap where code = '000001';")
-    if count <= 6:
+    if count <= NORTH_SHARE_HOLD_DAILY_COUNT:
         cursor.close()
         return False
     db_data = list(cursor.fetchall())
     db_data.sort()
-    _date = db_data[-6][0]
+    _date = db_data[-NORTH_SHARE_HOLD_DAILY_COUNT][0]
     cursor.execute("delete from market_cap where date < '%s';" % _date)
     cursor.close()
     return True
@@ -233,8 +233,9 @@ def get_market_cap_tend(code, cap_lst):
     cap_lst.sort(key=lambda x:x[3])
     matrix = numpy.array(cap_lst)
 
-    # for i in range(matrix.shape[1]):
-    #     cap = matrix[:, i]
+    if matrix.shape[1] < NORTH_SHARE_HOLD_DAILY_COUNT:
+        return False
+
     cap_1, cap_5, cap_10 = matrix[:, 0], matrix[:, 1], matrix[:, 2]
     if cap_10[-1] < 0:
         return False
@@ -245,5 +246,6 @@ def get_market_cap_tend(code, cap_lst):
         return False
 
     if cap_1[-1] > 0 and cap_1[-2] > 0:
-        return True
+        if cap_1[-2] - cap_1[-3] > 0 and cap_1[-1] - cap_1[-2] > 0:
+            return True
     return False

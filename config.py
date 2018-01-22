@@ -7,6 +7,7 @@ CHROME_BROWSER_PATH = "/home/yyq/gp/chromedriver_linux64/chromedriver"
 
 # easyMoney config
 HSGTCG_EACH_PAGE_NUM = 50
+NORTH_SHARE_HOLD_DAILY_COUNT = 6
 
 # sto code type
 STO_DAILY_AMOUNT_UP5 = 1
