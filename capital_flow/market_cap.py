@@ -208,6 +208,8 @@ def get_market_cap_change_data():
     r = dict()
     for d in cursor.fetchall():
         _, code, cap1, cap5, cap10, date = d
+        if type(code) == bytes:
+            code = code.decode("utf8")
         if code not in upper_sto:
             continue
 
@@ -233,16 +235,15 @@ def get_market_cap_tend(code, cap_lst):
 
     # for i in range(matrix.shape[1]):
     #     cap = matrix[:, i]
-    cap_1 = matrix[:, 0]
-    gap_1_5 = int(cap_1[5]) - int(cap_1[4])
-    gap_1_4 = int(cap_1[4]) - int(cap_1[3])
-    gap_1_3 = int(cap_1[3]) - int(cap_1[2])
-    gap_1_2 = int(cap_1[2]) - int(cap_1[1])
-    gap_1_1 = int(cap_1[1]) - int(cap_1[0])
-    if gap_1_5 > 0 and gap_1_4 > 0:
-        return True
+    cap_1, cap_5, cap_10 = matrix[:, 0], matrix[:, 1], matrix[:, 2]
+    if cap_10[-1] < 0:
+        return False
 
-    cap_5 = matrix[:, 1]
-    cap_10 = matrix[:, 2]
-    date = matrix[:, 3]
+    if cap_5[-2] - cap_5[-3] < 0:
+        return False
+    elif cap_5[-1] - cap_5[-2] <0:
+        return False
+
+    if cap_1[-1] > 0 and cap_1[-2] > 0:
+        return True
     return False
