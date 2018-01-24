@@ -83,12 +83,12 @@ class RealTimeStoData(object):
         "r0, r1, r2, r3": 成交量
         "curr_capital": 流通股值(万)
         "change_ratio": 涨跌幅
-        "turnover": 换手率(*/10000)
+        "turnover_ratio": 换手率(*/10000)
         "net_amount": 净流入(元)
         """
         flow_data = dict()
         for code in self.sto_codes:
-            resp = requests.get(self.k_url.format(code))
+            resp = requests.get(self.flow_url.format(code))
             if not resp:
                 continue
             data = resp.text
@@ -112,7 +112,7 @@ class RealTimeStoData(object):
             # r["trade"] = latest_data[15].split('"')[0]
             r["change_ratio"] = latest_data[16].split('"')[0]
             # r["volume"] = latest_data[17].split('"')[0]
-            r["turnover"] = latest_data[18].split('"')[0]
+            r["turnover_ratio"] = latest_data[18].split('"')[0]
             # r["r0x_ratio"] = latest_data[19].split('"')[0]
             r["net_amount"] = latest_data[20].split('"')[0]
             r["time"] = int(time.time())

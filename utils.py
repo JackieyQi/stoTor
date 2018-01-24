@@ -5,6 +5,7 @@
 
 from datetime import datetime, timedelta
 from random import randint
+from config import STO_TURNOVER, STO_TURNOVER_TYPE_UP5
 
 
 def get_time_inter(inter=1):
@@ -55,3 +56,8 @@ def get_random(n=13):
     start = 10 ** (n - 1)
     end = (10 ** n) - 1
     return str(randint(start, end))
+
+
+def check_sto_turnover(value):
+    if int(value) >= STO_TURNOVER:
+        return STO_TURNOVER_TYPE_UP5

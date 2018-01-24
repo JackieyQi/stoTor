@@ -4,11 +4,12 @@
 # @Author: yyq
 
 import requests
-from config import STO_DAILY_AMOUNT_UP5
+from config import STO_TURNOVER, STO_TURNOVER_TYPE_UP5, STO_TURNOVER_COUNT
 from data.database import get_cursor
-from utils import code_int2str
+from utils import code_int2str, check_sto_turnover, get_today
 
 upper_sto = list()
+
 
 class StoCode(object):
     def __init__(self):
@@ -28,28 +29,18 @@ class StoCode(object):
             if len(_data) == 0:
                 break
             for i in _data:
-                code, name, money_amount = i[0], i[2], i[13]
+                code_str, name, money_amount = i[0], i[2], i[13]
                 symbol = ""
-                if (code.find('sh') > -1):
-                    code = code[2:]
+                if (code_str.find('sh') > -1):
+                    code = code_str[2:]
                     symbol = "sh"
-                    # code = code[2:] + '.SS'
-                elif (code.find('sz') > -1):
-                    code = code[2:]
+                elif (code_str.find('sz') > -1):
+                    code = code_str[2:]
                     symbol = "sz"
-                    # code = code[2:] + '.SZ'
 
-                # result.append({"symbol": code, "name": name})
-
-                # type in database is int, not string
-                type = self.set_sto_type(money_amount)
-                result[int(code)]=[name, symbol, type]
+                result[int(code)] = [name, symbol, money_amount]
             count += 1
         return result
-
-    def set_sto_type(self, money_amount=0):
-        if int(money_amount) > 500000000:
-            return STO_DAILY_AMOUNT_UP5
 
 
 def save_sto_code():
@@ -57,7 +48,12 @@ def save_sto_code():
     _handler = StoCode()
     data = _handler.get_all_sto_code()
     if not data: return False
-    in_data = [[k,]+v for k, v in data.items()]
+
+    in_data = list()
+    for k, v in data.items():
+        name, symbol, money_amount = v
+        type = check_sto_turnover(money_amount)
+        in_data.append([k, name, symbol, type])
 
     sql = "insert ignore into sto_code (code, name, symbol, type) values (%s, %s, %s, %s);"
     cursor.executemany(sql, in_data)
@@ -65,25 +61,47 @@ def save_sto_code():
     return True
 
 
-def update_sto_code():
-    cursor = get_cursor()
-    _handler = StoCode()
-    data = _handler.get_all_sto_code()
+def save_sto_turnover():
+    date = get_today()
+    data = StoCode().get_all_sto_code()
     if not data: return False
-    in_data = [v+[k,] for k, v in data.items()]
 
-    sql = "update sto_code set name=%s, symbol=%s, type=%s where code = %s;"
+    cursor = get_cursor()
+    r = cursor.execute("select id from src_sto_turnover where date = '%s' limit 1;" % date)
+    if r >= 0: return True
+
+    in_data = list()
+    for k, v in data.items():
+        name, symbol, money_amount = v
+        in_data.append([k, symbol, money_amount, date])
+
+    sql = "insert into src_sto_turnover (code, symbol, turnover, date) values (%s, %s, %s, %s);"
     cursor.executemany(sql, in_data)
+
+    count = cursor.execute("select date from src_sto_turnover where code = 1;")
+    if count > STO_TURNOVER_COUNT:
+        db_data = list(cursor.fetchall())
+        db_data.sort()
+        _date = db_data[-STO_TURNOVER_COUNT][0]
+        cursor.execute("delete from src_sto_turnover where date < '%s';" % _date)
+
+    sql = "UPDATE sto_code set type=0 where type = %s; UPDATE sto_code set type = %s  WHERE code in " \
+          "(SELECT code from (SELECT code, SUM(turnover) as s FROM `src_sto_turnover` GROUP BY code) as B where B.s > %s);" % (
+        STO_TURNOVER_TYPE_UP5, STO_TURNOVER_TYPE_UP5, STO_TURNOVER)
+    cursor.execute(sql)
+
     cursor.close()
     return True
 
-def init_upper_sto():
+
+def init_sto_data():
     cursor = get_cursor()
     global upper_sto
+    upper_sto = list()
 
-    sql = "select code from sto_code where type = %s;" % STO_DAILY_AMOUNT_UP5
+    sql = "select code from sto_code where type = %s;" % STO_TURNOVER_TYPE_UP5
     cursor.execute(sql)
     db_data = cursor.fetchall()
     for d in db_data:
-        sto_code = code_int2str(d[0])
-        upper_sto.append(sto_code)
+        code = code_int2str(d[0])
+        upper_sto.append(code)

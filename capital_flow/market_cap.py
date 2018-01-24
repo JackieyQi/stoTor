@@ -49,6 +49,7 @@ class NorthShareHold(object):
                 result[sto_info[0]] = sto_info
                 data = data[3:]
 
+            print("NorthShareHold get_north_data_daily data len:%s" % len(result))
             if 0 < len(result)-pre_length < HSGTCG_EACH_PAGE_NUM:
                 break
             pre_length = len(result)
@@ -148,20 +149,6 @@ def save_single_sto(sto_code):
 
 def save_daily_market_cap():
     cursor = get_cursor()
-    # 沪市A股
-    sto_codes = list()
-    cursor.execute("select code from sto_code where code >= 600000 and code < 700000;")
-    db_data = cursor.fetchall()
-    for _d in db_data:
-        sto_code = code_int2str(_d[0])
-        sto_codes.append(sto_code)
-
-    # 深市A股，中小板
-    cursor.execute("select code from sto_code where code < 2999;")
-    db_data = cursor.fetchall()
-    for _d in db_data:
-        sto_code = code_int2str(_d[0])
-        sto_codes.append(sto_code)
 
     _handler = NorthShareHold()
     all_data = _handler.get_north_data_daily()
@@ -169,8 +156,11 @@ def save_daily_market_cap():
 
     data = list()
     for _key in all_data:
-        if int(_key) not in sto_codes:
+        if not 2999 < int(_key) < 600000:
             continue
+        elif int(_key) >= 700000:
+            continue
+
         data.append(all_data.get(_key))
     if not data: return False
 

@@ -10,7 +10,9 @@ HSGTCG_EACH_PAGE_NUM = 50
 NORTH_SHARE_HOLD_DAILY_COUNT = 6
 
 # sto code type
-STO_DAILY_AMOUNT_UP5 = 1
+STO_TURNOVER_TYPE_UP5 = 1
+STO_TURNOVER = 500000000
+STO_TURNOVER_COUNT = 6
 
 # schedule config
 SCHEDULE_JOBSTORES_URL = "mysql+pymysql://root:pwd@localhost/database"

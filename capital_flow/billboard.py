@@ -7,6 +7,7 @@ import requests
 from utils import get_time_inter
 from data.sto_code import upper_sto
 
+
 class LhBillboard(object):
     def __init__(self, top_time_inter=1):
         self.top_time_inter = top_time_inter
@@ -16,7 +17,7 @@ class LhBillboard(object):
         # self.em_url = "http://data.eastmoney.com/DataCenter_V3/stock2016/TradeDetail/pagesize=200,page=1,sortRule=-1," \
         #               "sortType=,startDate={},endDate={},gpfw=0,js=vardata_tab_1.html"
         self.lhb_daily_url = "http://datainterface3.eastmoney.com//EM_DataCenter_V3/api/LHBGGDRTJ/GetLHBGGDRTJ?" \
-                      "tkn=eastmoney&mkt=0&dateNum=&startDateTime={}7&endDateTime={}&sortRule=1&sortColumn=&pageNum=1&pageSize=200&cfg=lhbggdrtj"
+                             "tkn=eastmoney&mkt=0&dateNum=&startDateTime={}&endDateTime={}&sortRule=1&sortColumn=&pageNum=1&pageSize=200&cfg=lhbggdrtj"
 
     def get_top_list(self, time_inter):
         start_date, end_date = get_time_inter(time_inter)
@@ -32,16 +33,16 @@ class LhBillboard(object):
         for d in data:
             lst = d.split("|")
             # change_ratio: -7.9184=>-7.92%
-            # turnover: 1.57=>1.57%
-            code, change_ratio, turnover = lst[0], lst[3], lst[4]
+            # turnover_ratio: 1.57=>1.57%
+            code, change_ratio, turnover_ratio = lst[0], lst[3], lst[4]
             if not self.check_list_data(code):
                 continue
 
             if code not in r:
-                r[code] = [[change_ratio, turnover], ]
+                r[code] = [[change_ratio, turnover_ratio], ]
             elif code in r:
-                r[code].append([change_ratio, turnover])
-        return r
+                r[code].append([change_ratio, turnover_ratio])
+        return start_date, end_date, r
 
     def check_list_data(self, code):
         if code[0] == "3":
@@ -52,11 +53,11 @@ class LhBillboard(object):
             return True
 
     def get_list_ratio(self):
-        _r_min = self.get_top_list(self.time_inter_min)
-        r_min = sorted(_r_min.items(), key=lambda x:len(x[1]), reverse=True)
+        _r_min_start_date, _r_min_end_date, _r_min = self.get_top_list(self.time_inter_min)
+        r_min = sorted(_r_min.items(), key=lambda x: len(x[1]), reverse=True)
 
-        _r_max = self.get_top_list(self.time_inter_max)
-        r_max = sorted(_r_max.items(), key=lambda x:len(x[1]), reverse=True)
+        _r_max_start_date, _r_max_end_date, _r_max = self.get_top_list(self.time_inter_max)
+        r_max = sorted(_r_max.items(), key=lambda x: len(x[1]), reverse=True)
 
         key_code = list()
         for k, v in _r_max.items():
@@ -81,4 +82,6 @@ class LhBillboard(object):
                 return
             elif code not in result:
                 result.append(code)
-        return result
+        return {"min_date": [_r_min_start_date, _r_min_end_date],
+                "max_date": [_r_max_start_date, _r_max_end_date],
+                "result": result}

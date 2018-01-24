@@ -9,12 +9,12 @@ from tornado.httpclient import AsyncHTTPClient
 from tornado import gen
 
 
-class EMDataRequestHandler(RequestHandler):
+class StoRequestHandler(RequestHandler):
     @gen.coroutine
-    def get(self):
+    def get(self, *args):
         http_client = AsyncHTTPClient()
-        resp = yield http_client.fetch("")
-        self.write("over")
+        resp = yield http_client.fetch("http://hq.sinajs.cn/list=%s" % args)
+        self.write("result: %s" % resp.text)
 
 
 class EMMarketCapUpdate(RequestHandler):
@@ -25,11 +25,18 @@ class EMMarketCapUpdate(RequestHandler):
         self.write("update over, r:%s \n" % repr(r))
 
 
+class LHBStoHandler(RequestHandler):
+    def get(self):
+        from capital_flow.billboard import LhBillboard
+        r = LhBillboard().get_list_ratio()
+        self.write("LHB Billboard data, %s" % repr(r))
+
+
 class CommendStoHandler(RequestHandler):
     def get(self):
         from capital_flow.market_cap import get_market_cap_change_data
-        a, b = get_market_cap_change_data()
-        self.write("commend data, a:%s, b:%s" % (a, b))
+        a, _ = get_market_cap_change_data()
+        self.write("commend data, %s" % repr(a))
 
 
 class CronAddStoCode(RequestHandler):
@@ -38,11 +45,6 @@ class CronAddStoCode(RequestHandler):
         r = save_sto_code()
         self.write("cron save sto code over, r:%s \n" % repr(r))
 
-class CronUpdateStoCode(RequestHandler):
-    def get(self):
-        from data.sto_code import update_sto_code
-        r = update_sto_code()
-        self.write("cron update sto code over, r:%s \n" % repr(r))
 
 class CronUpdateMarketCap(RequestHandler):
     def get(self):
@@ -52,14 +54,14 @@ class CronUpdateMarketCap(RequestHandler):
 
 
 common_handlers = [
-    (r"/tmp_em", EMDataRequestHandler),
+    (r"/sto", StoRequestHandler),
     # (r"/emUpdate", EMMarketCapUpdate),
+    (r"/lhbSto", LHBStoHandler),
     (r"/commendSto", CommendStoHandler),
 ]
 
 cron_handlers = [
     (r"/cron/addStoCode", CronAddStoCode),
-    (r"/cron/updateStoCode", CronUpdateStoCode),
 
     # 添加监控信号signal，当前的page_count, restart
     (r"/cron/updateMarketCap", CronUpdateMarketCap),
