@@ -44,4 +44,4 @@ class SScheduler(object):
         self.scheduler.add_job(save_daily_market_cap, "cron", day_of_week="tue-sat", hour=9)
 
         from real_quotes.mind import save_k_data
-        self.scheduler.add_job(save_k_data, "cron", day_of_week="mon-fri", hour="9-15", minute="*/5")
+        self.scheduler.add_job(save_k_data, "cron", day_of_week="mon-fri", hour="9-14", minute="*/5")

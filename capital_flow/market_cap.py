@@ -159,7 +159,7 @@ def save_daily_market_cap(clear=False):
 
     data = list()
     for _key in all_data:
-        if not 2999 < int(_key) < 600000:
+        if 2999 < int(_key) < 600000:
             continue
         elif int(_key) >= 700000:
             continue

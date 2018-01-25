@@ -63,14 +63,14 @@ def save_sto_code():
 
 
 def save_sto_turnover():
+    cursor = get_cursor()
     date = get_today()
+    r = cursor.execute("select id from src_sto_turnover where date = '%s' limit 1;" % date)
+    if r > 0: return True
+
     data = StoCode().get_all_sto_code()
     logger.info("save_sto_turnover all sto code data len:%s" % len(data))
     if not data: return False
-
-    cursor = get_cursor()
-    r = cursor.execute("select id from src_sto_turnover where date = '%s' limit 1;" % date)
-    if r >= 0: return True
 
     in_data = list()
     for k, v in data.items():
@@ -87,9 +87,9 @@ def save_sto_turnover():
         _date = db_data[-STO_TURNOVER_COUNT][0]
         cursor.execute("delete from src_sto_turnover where date < '%s';" % _date)
 
-    sql = "UPDATE sto_code set type=0 where type = %s; UPDATE sto_code set type = %s  WHERE code in " \
-          "(SELECT code from (SELECT code, SUM(turnover) as s FROM `src_sto_turnover` GROUP BY code) as B where B.s > %s);" % (
-        STO_TURNOVER_TYPE_UP5, STO_TURNOVER_TYPE_UP5, STO_TURNOVER)
+    cursor.execute("UPDATE sto_code set type=0 where type = %s;" % STO_TURNOVER_TYPE_UP5)
+    sql = "UPDATE sto_code set type = %s  WHERE code in (SELECT code from (SELECT code, SUM(turnover) as s " \
+          "FROM `src_sto_turnover` GROUP BY code) as B where B.s > %s);" % (STO_TURNOVER_TYPE_UP5, STO_TURNOVER)
     cursor.execute(sql)
 
     cursor.close()
