@@ -49,7 +49,7 @@ class CronAddStoCode(RequestHandler):
 class CronUpdateMarketCap(RequestHandler):
     def get(self):
         from capital_flow.market_cap import save_daily_market_cap
-        r = save_daily_market_cap()
+        r = save_daily_market_cap(clear=True)
         self.write("cron daily update market cap over, r:%s \n" % repr(r))
 
 

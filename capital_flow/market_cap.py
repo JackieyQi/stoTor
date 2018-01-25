@@ -12,6 +12,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from data.browser import SimulationChrome
 from data.database import get_cursor
 from data.sto_code import upper_sto
+from data.log import logger
 from utils import check_cap_unit, code_int2str
 from config import HSGTCG_EACH_PAGE_NUM, NORTH_SHARE_HOLD_DAILY_COUNT
 
@@ -50,6 +51,7 @@ class NorthShareHold(object):
                 data = data[3:]
 
             print("NorthShareHold get_north_data_daily data len:%s" % len(result))
+            logger.info("NorthShareHold get_north_data_daily data len:%s" % len(result))
             if 0 < len(result)-pre_length < HSGTCG_EACH_PAGE_NUM:
                 break
             pre_length = len(result)
@@ -147,7 +149,8 @@ def save_single_sto(sto_code):
     cursor.close()
     return True
 
-def save_daily_market_cap():
+def save_daily_market_cap(clear=False):
+    logger.info("save_daily_market_cap start, clear:%s"%repr(clear))
     cursor = get_cursor()
 
     _handler = NorthShareHold()
@@ -164,6 +167,8 @@ def save_daily_market_cap():
         data.append(all_data.get(_key))
     if not data: return False
 
+    if clear:
+        cursor.execute("delete from market_cap where date='%s';"%data[0][-1])
     count = cursor.execute("SELECT id from market_cap where date='%s' LIMIT 1;"%data[0][-1])
     if count > 0:
         return True
@@ -173,6 +178,7 @@ def save_daily_market_cap():
     cursor.close()
 
     check_extra_daily_market_cap()
+    logger.info("save_daily_market_cap over, last count:%s"%count)
     return True
 
 def check_extra_daily_market_cap():

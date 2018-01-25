@@ -6,6 +6,7 @@
 import requests
 from config import STO_TURNOVER, STO_TURNOVER_TYPE_UP5, STO_TURNOVER_COUNT
 from data.database import get_cursor
+from data.log import logger
 from utils import code_int2str, check_sto_turnover, get_today
 
 upper_sto = list()
@@ -64,6 +65,7 @@ def save_sto_code():
 def save_sto_turnover():
     date = get_today()
     data = StoCode().get_all_sto_code()
+    logger.info("save_sto_turnover all sto code data len:%s" % len(data))
     if not data: return False
 
     cursor = get_cursor()
@@ -91,6 +93,7 @@ def save_sto_turnover():
     cursor.execute(sql)
 
     cursor.close()
+    logger.info("save_sto_turnover over, exist count:%s" % count)
     return True
 
 

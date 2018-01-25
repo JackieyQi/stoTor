@@ -7,6 +7,7 @@ import time
 import requests
 from utils import get_random, get_today
 from data.database import get_redis
+from data.log import logger
 
 
 class RealTimeStoData(object):
@@ -134,6 +135,7 @@ class RealTimeAnalysis(object):
 def save_k_data():
     sto_codes = ["sz000001", "sh600000", ]
     k_data = RealTimeStoData(sto_codes).get_k_data()
+    logger.info("save_k_data, sto_codes:%s, k data:%s" % (sto_codes, k_data))
 
     redis = get_redis()
     for code, v in k_data.items():
