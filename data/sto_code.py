@@ -86,10 +86,11 @@ def save_sto_turnover():
         db_data.sort()
         _date = db_data[-STO_TURNOVER_COUNT][0]
         cursor.execute("delete from src_sto_turnover where date < '%s';" % _date)
+        count = STO_TURNOVER_COUNT
 
     cursor.execute("UPDATE sto_code set type=0 where type = %s;" % STO_TURNOVER_TYPE_UP5)
-    sql = "UPDATE sto_code set type = %s  WHERE code in (SELECT code from (SELECT code, SUM(turnover) as s " \
-          "FROM `src_sto_turnover` GROUP BY code) as B where B.s > %s);" % (STO_TURNOVER_TYPE_UP5, STO_TURNOVER)
+    sql = "UPDATE sto_code set type = %s  WHERE code in (SELECT code from (SELECT code, SUM(turnover)/%s as s " \
+          "FROM `src_sto_turnover` GROUP BY code) as B where B.s > %s);" % (STO_TURNOVER_TYPE_UP5, count, STO_TURNOVER)
     cursor.execute(sql)
 
     cursor.close()

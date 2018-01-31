@@ -6,6 +6,7 @@
 import requests
 from utils import get_time_inter
 from data.sto_code import upper_sto
+from data.log import logger
 
 
 class LhBillboard(object):
@@ -58,6 +59,7 @@ class LhBillboard(object):
 
         _r_max_start_date, _r_max_end_date, _r_max = self.get_top_list(self.time_inter_max)
         r_max = sorted(_r_max.items(), key=lambda x: len(x[1]), reverse=True)
+        logger.info("capital_flow billboard lhb data, min:%s, max:%s" % (len(r_min), len(r_max)))
 
         key_code = list()
         for k, v in _r_max.items():
