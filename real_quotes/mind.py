@@ -4,9 +4,10 @@
 # @Author: yyq
 
 import time
+import json
 import requests
 from utils import get_random, get_today
-from data.database import get_redis
+from data.database import get_redis, get_cursor
 from data.log import logger
 
 
@@ -14,6 +15,8 @@ class RealTimeStoData(object):
     def __init__(self, sto_lst):
         # eg:['sz000001', ]
         self.sto_codes = sto_lst
+
+        self.redis = get_redis()
 
         self.url = "https://hq.sinajs.cn/rn={}&list={}"
         # current day data: datalen=48
@@ -45,33 +48,47 @@ class RealTimeStoData(object):
                 elif i == 9:
                     sto_money = v  # 需要除以一万麽？
 
-    def get_k_data(self):
+    def save_k_data(self):
+        for code_str in self.sto_codes:
         # k data 5 minutes
-        scale = 5
-        k_data = dict()
-        for code in self.sto_codes:
-            resp = requests.get(self.k_url.format(code, scale))
-            if not resp:
-                # warnning log
-                continue
+            r = self.get_k_data(code_str, scale=5)
+            if r:
+                logger.info("RealTimeStoData save_k_data, code:%s"%code_str)
+                self.redis.rpush(code_str, r)
 
-            data = resp.text
-            if str(get_today()) not in data:
-                continue
+    def is_exist_k(self, code_str, r):
+        last_r = self.redis.lindex(code_str, -1)
+        if not last_r:
+            return False
 
-            r = dict()
-            latest_data = data.split("},")[-1][:-1].split(':"')
-            r["day"] = latest_data[1].split('"')[0]
-            r["open"] = latest_data[2].split('"')[0]
-            r["high"] = latest_data[3].split('"')[0]
-            r["low"] = latest_data[4].split('"')[0]
-            r["close"] = latest_data[5].split('"')[0]
-            r["volume"] = latest_data[6].split('"')[0]
-            k_data[code] = r
+        if type(last_r) == bytes:
+            last_r = json.loads(last_r.decode("utf8").replace("'",'"'))
+        if r.get("day") == last_r.get("day"):
+            return True
+        else:
+            return False
 
-            # data = json.loads(resp.text)[-1]
-            # day = data.get("day")
-        return k_data
+    def get_k_data(self, code_str, scale):
+        resp = requests.get(self.k_url.format(code_str, scale))
+        if not resp:
+            logger.warning("RealTimeStoData get_k_data, request no response, code:%s"%code_str)
+            return
+
+        data = resp.text
+        if str(get_today()) not in data:
+            return
+
+        r = dict()
+        latest_data = data.split("},")[-2][:-1].split(':"')
+        r["day"] = latest_data[1].split('"')[0]
+        r["open"] = latest_data[2].split('"')[0]
+        r["high"] = latest_data[3].split('"')[0]
+        r["low"] = latest_data[4].split('"')[0]
+        r["close"] = latest_data[5].split('"')[0]
+        r["volume"] = latest_data[6].split('"')[0]
+
+        if not self.is_exist_k(code_str, r):
+            return r
 
     def get_flow_data(self):
         """
@@ -133,13 +150,34 @@ class RealTimeAnalysis(object):
 
 
 def save_k_data():
-    sto_codes = ["sz000001", "sh600000", ]
-    k_data = RealTimeStoData(sto_codes).get_k_data()
-    logger.info("save_k_data, sto_codes:%s, k data:%s" % (sto_codes, k_data))
+    from data.sto_code import self_sto_pools
+
+    sto_codes = list()
+    for code in self_sto_pools.keys():
+        if code[0] == "6":
+            code_str = "sh"+code
+        elif code[0] in ("0", "2"):
+            code_str = "sz"+code
+        else:
+            code_str = code
+        sto_codes.append(code_str)
+    logger.info("save_k_data, sto_codes:%s" % sto_codes)
+    RealTimeStoData(sto_codes).save_k_data()
+
+
+def clear_k_data():
+    from data.sto_code import self_sto_pools
 
     redis = get_redis()
-    for code, v in k_data.items():
-        redis.rpush(code, v)
+    for code in self_sto_pools.keys():
+        if code[0] == "6":
+            code_str = "sh"+code
+        elif code[0] in ("0", "2"):
+            code_str = "sz"+code
+        else:
+            code_str = code
+        r = redis.delete(code_str)
+        logger.info("clear_k_data, key:%s, r:%s"%(code_str, r))
 
 
 def save_flow_data():

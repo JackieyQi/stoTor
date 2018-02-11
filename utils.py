@@ -51,6 +51,12 @@ def code_int2str(code):
         code = "00000" + code
         return code[-6:]
 
+def is_code_legal(code):
+    if type(code) == int:
+        return True, code_int2str(code)
+    elif type(code) == str:
+        pass
+
 
 def get_random(n=13):
     start = 10 ** (n - 1)

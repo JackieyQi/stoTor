@@ -43,5 +43,11 @@ class SScheduler(object):
         from capital_flow.market_cap import save_daily_market_cap
         self.scheduler.add_job(save_daily_market_cap, "cron", day_of_week="tue-sat", hour=9)
 
-        from real_quotes.mind import save_k_data
-        self.scheduler.add_job(save_k_data, "cron", day_of_week="mon-fri", hour="9-14", minute="*/5")
+        self.init_real_job()
+
+    def init_real_job(self):
+        from real_quotes.mind import save_k_data, clear_k_data
+        self.scheduler.add_job(save_k_data, "cron", day_of_week="mon-fri", hour="9-14", minute="*/3")
+
+        self.scheduler.add_job(clear_k_data, "cron", day_of_week="mon-fri", hour="20")
+

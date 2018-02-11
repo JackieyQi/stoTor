@@ -3,7 +3,22 @@
 # @Time: 17-12-30
 # @Author: yyq
 
-CHROME_BROWSER_PATH = "/home/yyq/gp/chromedriver_linux64/chromedriver"
+import os
+import json
+from tornado.options import options
+
+
+class DBConfig(object):
+    _cfg = json.loads(options.db)
+ 
+    mysql_host = _cfg.get("mysql_host")
+    mysql_user = _cfg.get("mysql_user")
+    mysql_pwd = _cfg.get("mysql_pwd")
+
+    redis_host = _cfg.get("redis_host")
+    redis_port = _cfg.get("redis_port")
+
+CHROME_BROWSER_PATH = oa.path.dirname(os.path.abspath("")) + "/chromedriver_linux64/chromedriver"
 
 # easyMoney config
 HSGTCG_EACH_PAGE_NUM = 50
@@ -15,6 +30,8 @@ STO_TURNOVER = 500000000
 STO_TURNOVER_COUNT = 6
 
 # schedule config
-SCHEDULE_JOBSTORES_URL = "mysql+pymysql://root:pwd@localhost/database"
+SCHEDULE_JOBSTORES_URL = "mysql+pymysql://%s:%s@%s/stoADB"%(DBConfig.mysql_user, DBConfig.mysql_pwd, DBConfig.mysql_host)
 EXECUTOR_POOL_THREADS = 10
 EXECUTOR_POOL_PROCESSES = 5
+
+

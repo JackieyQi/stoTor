@@ -10,8 +10,7 @@
 import numpy
 from selenium.webdriver.common.action_chains import ActionChains
 from data.browser import SimulationChrome
-from data.database import get_cursor
-from data.sto_code import upper_sto
+from data.database import get_cursor, get_redis
 from data.log import logger
 from utils import check_cap_unit, code_int2str
 from config import HSGTCG_EACH_PAGE_NUM, NORTH_SHARE_HOLD_DAILY_COUNT
@@ -201,12 +200,16 @@ def get_market_cap_change_data():
     cursor = get_cursor()
     cursor.execute("select * from market_cap;")
 
+    redis = get_redis()
+    logger.info("get_market_cap_change_data, upper sto len:%s"%redis.scard("up5Sto"))
+
     r = dict()
     for d in cursor.fetchall():
         _, code, cap1, cap5, cap10, date = d
         if type(code) == bytes:
             code = code.decode("utf8")
-        if code not in upper_sto:
+
+        if redis.sismember("up5Sto", code) == 0:
             continue
 
         if code not in r:
@@ -229,7 +232,8 @@ def get_market_cap_tend(code, cap_lst):
     cap_lst.sort(key=lambda x:x[3])
     matrix = numpy.array(cap_lst)
 
-    if matrix.shape[1] < NORTH_SHARE_HOLD_DAILY_COUNT:
+    #if matrix.shape[1] < NORTH_SHARE_HOLD_DAILY_COUNT:
+    if matrix.shape[1] < 3:
         return False
 
     cap_1, cap_5, cap_10 = matrix[:, 0], matrix[:, 1], matrix[:, 2]

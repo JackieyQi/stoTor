@@ -3,9 +3,10 @@
 # @Time: 18-01-01
 # @Author: yyq
 
+import json
 import requests
 from utils import get_time_inter
-from data.sto_code import upper_sto
+from data.database import get_redis
 from data.log import logger
 
 
@@ -14,11 +15,15 @@ class LhBillboard(object):
         self.top_time_inter = top_time_inter
         self.time_inter_min = 1
         self.time_inter_max = 14
+        self.init_data()
 
         # self.em_url = "http://data.eastmoney.com/DataCenter_V3/stock2016/TradeDetail/pagesize=200,page=1,sortRule=-1," \
         #               "sortType=,startDate={},endDate={},gpfw=0,js=vardata_tab_1.html"
         self.lhb_daily_url = "http://datainterface3.eastmoney.com//EM_DataCenter_V3/api/LHBGGDRTJ/GetLHBGGDRTJ?" \
                              "tkn=eastmoney&mkt=0&dateNum=&startDateTime={}&endDateTime={}&sortRule=1&sortColumn=&pageNum=1&pageSize=200&cfg=lhbggdrtj"
+    def init_data(self):
+        self.redis = get_redis()
+        self.key = "up5Sto"
 
     def get_top_list(self, time_inter):
         start_date, end_date = get_time_inter(time_inter)
@@ -48,7 +53,7 @@ class LhBillboard(object):
     def check_list_data(self, code):
         if code[0] == "3":
             return False
-        elif code not in upper_sto:
+        elif self.redis.sismember(self.key, code) == 0:
             return False
         else:
             return True

@@ -56,4 +56,5 @@ build
 
 # configurations:
 *.ini
+*.cfg
 .idea/
