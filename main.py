@@ -14,6 +14,7 @@ from views import handlers
 tornado.options.define("port", default=8000, help="run on the port.", type=int)
 tornado.options.define("ip", default="0.0.0.0", help="run on the address.", type=str)
 tornado.options.define("db", default="", help="database configuration")
+tornado.options.define("srv", default="", help="srv configuration")
 
 
 def main():

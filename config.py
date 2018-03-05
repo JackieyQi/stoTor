@@ -18,7 +18,15 @@ class DBConfig(object):
     redis_host = _cfg.get("redis_host")
     redis_port = _cfg.get("redis_port")
 
-CHROME_BROWSER_PATH = oa.path.dirname(os.path.abspath("")) + "/chromedriver_linux64/chromedriver"
+
+class SrvConfig(object): 
+    _cfg = json.loads(options.db)
+
+    email_sender = _cfg.get("email_sender")
+    email_rcvr = _cfg.get("email_rcvr")
+    email_pwd = _cfg.get("email_pwd")
+
+CHROME_BROWSER_PATH = os.path.dirname(os.path.abspath("")) + "/chromedriver_linux64/chromedriver"
 
 # easyMoney config
 HSGTCG_EACH_PAGE_NUM = 50
