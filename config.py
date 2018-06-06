@@ -20,11 +20,14 @@ class DBConfig(object):
 
 
 class SrvConfig(object): 
-    _cfg = json.loads(options.db)
+    _cfg = json.loads(options.srv)
 
     email_sender = _cfg.get("email_sender")
     email_rcvr = _cfg.get("email_rcvr")
     email_pwd = _cfg.get("email_pwd")
+
+    celery_broker_url = _cfg.get("celery_broker_url")
+    celery_backend_url = _cfg.get("celery_backend_url")
 
 CHROME_BROWSER_PATH = os.path.dirname(os.path.abspath("")) + "/chromedriver_linux64/chromedriver"
 

@@ -4,6 +4,7 @@
 # @Author: yyq
 
 import os
+import tcelery
 import tornado.ioloop
 import tornado.web
 import tornado.options
@@ -25,6 +26,9 @@ def main():
     app = tornado.web.Application(handlers=handlers, debug=False)
     http_server = tornado.httpserver.HTTPServer(app, xheaders=True)
     http_server.listen(tornado.options.options.port, tornado.options.options.ip)
+
+    from message.scelery import celery_app
+    tcelery.setup_nonblocking_producer(celery_app=celery_app)
 
     from data.sto_code import init_sto_data
     init_sto_data()

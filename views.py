@@ -6,17 +6,23 @@
 from tornado.web import RequestHandler
 from tornado.httpclient import AsyncHTTPClient
 from tornado import gen
+from tornado import web
 
 
 class StoRequestHandler(RequestHandler):
+    @web.asynchronous
     @gen.coroutine
     def get(self):
         codes = self.get_argument("codes")
         print(codes,type(codes))
         #http_client = AsyncHTTPClient()
         #resp = yield http_client.fetch("http://hq.sinajs.cn/list=%s" % codes)
-        from real_quotes.mind import save_k_data
+        #from real_quotes.mind import save_k_data
         #save_k_data()
+
+        from message.squeues import email
+        #email.delay("ttttttttttt","mmmmmmmmmmmmmmmmmm")
+        resp = yield gen.Task(email.apply_async, args=["x_title", "y_msg"])
         self.write("result: %s" % 'sss')
 
 

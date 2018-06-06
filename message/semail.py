@@ -49,9 +49,7 @@ class StoRequestHandler(RequestHandler):
         print(codes,type(codes))
         #http_client = AsyncHTTPClient()
 
-@gen.coroutine
-def send_email():
-    pass
+#@gen.coroutine
+def send_email(title, msg):
+    EmailHandler().send(title, msg)
 
-if __name__ == "__main__":
-    h = EmailHandler().send()
