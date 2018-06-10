@@ -40,6 +40,7 @@ class EmailHandler(object):
         server.sendmail(SrvConfig.email_sender, [SrvConfig.email_rcvr,], msg.as_string())
         server.quit()
         logger.info("EmailHandler, end send")
+        return "email sent"
 
 
 class StoRequestHandler(RequestHandler):
@@ -49,7 +50,6 @@ class StoRequestHandler(RequestHandler):
         print(codes,type(codes))
         #http_client = AsyncHTTPClient()
 
-#@gen.coroutine
 def send_email(title, msg):
-    EmailHandler().send(title, msg)
+    return EmailHandler().send(title, msg)
 

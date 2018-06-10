@@ -7,6 +7,7 @@ from tornado.web import RequestHandler
 from tornado.httpclient import AsyncHTTPClient
 from tornado import gen
 from tornado import web
+from data.log import logger
 
 
 class StoRequestHandler(RequestHandler):
@@ -22,8 +23,10 @@ class StoRequestHandler(RequestHandler):
 
         from message.squeues import email
         #email.delay("ttttttttttt","mmmmmmmmmmmmmmmmmm")
-        resp = yield gen.Task(email.apply_async, args=["x_title", "y_msg"])
-        self.write("result: %s" % 'sss')
+        #resp = yield gen.Task(email.apply_async, args=["x_title", "y_msg"])
+        resp = yield gen.Task(email, "x_title", "y_msg")
+        self.write("result: %s" % resp)
+        self.finish()
 
 
 class EMMarketCapUpdate(RequestHandler):

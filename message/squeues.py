@@ -9,7 +9,7 @@ from message.semail import send_email
 
 
 @celery_app.task
-def email(title, msg):
+def email(title, msg, callback):
     logger.info("squeues task email start, title:%s"%title)
-    return send_email(title, msg)
+    callback(send_email(title, msg))
 
