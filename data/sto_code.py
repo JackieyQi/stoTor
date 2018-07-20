@@ -5,33 +5,34 @@
 
 import json
 import requests
-from config import STO_TURNOVER, STO_TURNOVER_TYPE_UP5, STO_TURNOVER_COUNT
-from data.database import get_cursor, get_redis
-from data.log import logger
-from utils import code_int2str, check_sto_turnover, get_today
+from config import CFG
+# from config import STO_TURNOVER, STO_TURNOVER_TYPE_UP5, STO_TURNOVER_COUNT
+from common.database import get_cursor, get_redis
+from common.log import logger
+from common.utils import (code_int2str, check_sto_turnover, get_today, get_today_time, get_time_now, parse_price, unparse_price)
+from spider.crawl import req_all_codes
 
 self_sto_pools = dict()
 
 
 class StoCode(object):
-    def __init__(self, code="", price_in="", price_out="", price_top="", price_bot="", date_in=None):
+    def __init__(self, code="", price_in="", price_out="", price_top="", price_bot="", time_in=get_time_now()):
         self.code = code
         self.price_in_str = price_in
         self.price_out_str = price_out
         self.price_top_str = price_top
         self.price_bot_str = price_bot
-        self.date_in = date_in
+        self.time_in = time_in
 
         self.cursor = get_cursor()
         self.redis = get_redis()
 
-        self.sn_url = "http://money.finance.sina.com.cn/d/api/openapi_proxy.php"
 
     def __str__(self):
-        return json.dumps({"code":self.code,"price_in":self.price_in_str,"price_out":self.price_out_str,"top":self.price_top_str, "bot":self.price_bot_str, "date_in":str(self.date_in)})
+        return json.dumps({"code":self.code,"price_in":self.price_in_str,"price_out":self.price_out_str,"top":self.price_top_str, "bot":self.price_bot_str, "time_in":self.time_in})
 
     def is_exist_opt(self):
-        if self.cursor.execute("select id from self_sto where code=%s"%self.code):
+        if self.cursor.execute("select id from user_sto where code=%s"%self.code):
             return True
         else:
             return False
@@ -40,65 +41,36 @@ class StoCode(object):
         self.price_top_str = str(top)
         self.price_bot_str = str(bot)
         if self.is_exist_opt():
-            self.cursor.execute("update self_sto set price_in=%s,price_top=%s,price_bot=%s,date_in='%s' where code='%s';"%(self.price_in_str, top, bot, self.date_in, self.code))
+            self.cursor.execute("update user_sto set price_in=%s,price_top=%s,price_bot=%s,time_in=%s where code='%s';"%(parse_price(self.price_in_str), parse_price(top), parse_price(bot), self.time_in, self.code))
             msg = "self sto in update, code:%s"%self.code
         else:
-            self.cursor.execute("insert into self_sto (code, price_in, price_top, price_bot, date_in) values('%s', %s, %s, %s, '%s');"%(self.code, self.price_in_str, top, bot, self.date_in)) 
+            self.cursor.execute("insert into user_sto (code, price_in, price_top, price_bot, time_in) values('%s', %s, %s, %s, %s);"%(self.code, parse_price(self.price_in_str), parse_price(top), parse_price(bot), self.time_in))
             msg = "self sto in insert, code:%s"%self.code
         return msg
 
     def out(self, price):
-        date = get_today()
         self.price_out_str = str(price)
 
         if self.is_exist_opt():
-            self.cursor.execute("update self_sto set price_out=%s,date_out='%s' where code='%s';"%(price, date, self.code))
+            self.cursor.execute("update user_sto set price_out=%s,time_out=%s where code='%s';"%(parse_price(price), get_time_now(), self.code))
             msg = "self sto out over, code:%s"%self.code
         else:
             msg = "err self sto out, not exist, code:%s"%self.code
         return msg
 
-    def get_all_sto_code(self):
-        result, count = dict(), 1
-        while (count < 100):
-            para_val = '[["hq","hs_a","",0,' + str(count) + ',500]]'
-            r_params = {'__s': para_val}
-            resp = requests.get(self.sn_url, params=r_params)
-
-            if not resp:
-                count += 1
-                continue
-            _data = resp.json()[0].get("items", [])
-            if len(_data) == 0:
-                break
-            for i in _data:
-                code_str, name, money_amount = i[0], i[2], i[13]
-                symbol = ""
-                if (code_str.find('sh') > -1):
-                    code = code_str[2:]
-                    symbol = "sh"
-                elif (code_str.find('sz') > -1):
-                    code = code_str[2:]
-                    symbol = "sz"
-
-                result[int(code)] = [name, symbol, money_amount]
-            count += 1
-        return result
-
 
 def save_sto_code():
-    cursor = get_cursor()
-    _handler = StoCode()
-    data = _handler.get_all_sto_code()
+    data = req_all_codes()
     if not data: return False
 
     in_data = list()
     for k, v in data.items():
         name, symbol, money_amount = v
-        type = check_sto_turnover(money_amount)
-        in_data.append([k, name, symbol, type])
+        stype = check_sto_turnover(money_amount)
+        in_data.append([k, name, symbol, stype])
 
     sql = "insert ignore into sto_code (code, name, symbol, type) values (%s, %s, %s, %s);"
+    cursor = get_cursor()
     cursor.executemany(sql, in_data)
     cursor.close()
     return True
@@ -106,33 +78,33 @@ def save_sto_code():
 
 def save_sto_turnover():
     cursor = get_cursor()
-    date = get_today()
-    r = cursor.execute("select id from src_sto_turnover where date = '%s' limit 1;" % date)
+    today_time = get_today_time()
+    r = cursor.execute("select id from sto_src_turnover where create_time = %s limit 1;" % today_time)
     if r > 0: return True
 
-    data = StoCode().get_all_sto_code()
+    data = req_all_codes()
     logger.info("save_sto_turnover all sto code data len:%s" % len(data))
     if not data: return False
 
     in_data = list()
     for k, v in data.items():
         name, symbol, money_amount = v
-        in_data.append([k, symbol, money_amount, date])
+        in_data.append([k, symbol, money_amount, today_time])
 
-    sql = "insert into src_sto_turnover (code, symbol, turnover, date) values (%s, %s, %s, %s);"
+    sql = "insert into sto_src_turnover (code, symbol, turnover, create_time) values (%s, %s, %s, %s);"
     cursor.executemany(sql, in_data)
 
-    count = cursor.execute("select date from src_sto_turnover where code = 1;")
-    if count > STO_TURNOVER_COUNT:
+    count = cursor.execute("select create_time from sto_src_turnover where code = '000001';")
+    if count > CFG.STO_TURNOVER_COUNT:
         db_data = list(cursor.fetchall())
         db_data.sort()
-        _date = db_data[-STO_TURNOVER_COUNT][0]
-        cursor.execute("delete from src_sto_turnover where date < '%s';" % _date)
-        count = STO_TURNOVER_COUNT
+        _time = db_data[-CFG.STO_TURNOVER_COUNT][0]
+        cursor.execute("delete from sto_src_turnover where create_time < %s;" % _time)
+        count = CFG.STO_TURNOVER_COUNT
 
-    cursor.execute("UPDATE sto_code set type=0 where type = %s;" % STO_TURNOVER_TYPE_UP5)
+    cursor.execute("UPDATE sto_code set type=0 where type = %s;" % CFG.STO_TURNOVER_TYPE_UP5)
     sql = "UPDATE sto_code set type = %s  WHERE code in (SELECT code from (SELECT code, SUM(turnover)/%s as s " \
-          "FROM `src_sto_turnover` GROUP BY code) as B where B.s > %s);" % (STO_TURNOVER_TYPE_UP5, count, STO_TURNOVER)
+          "FROM `sto_src_turnover` GROUP BY code) as B where B.s > %s);" % (CFG.STO_TURNOVER_TYPE_UP5, count, CFG.STO_TURNOVER)
     cursor.execute(sql)
 
     cursor.close()
@@ -157,32 +129,32 @@ def opt_self_sto(code, price, top="", bot=""):
         del self_sto_pools[code]
 
     else:
-        sto = self_sto_pools.get(code, StoCode(code, price_in=price, date_in=get_today()))
+        sto = self_sto_pools.get(code, StoCode(code, price_in=price))
         msg = sto.add(top, bot)
         self_sto_pools[code] = sto
     return msg
 
 def load_self_sto():
     cursor = get_cursor()
-    cursor.execute("select code, price_in, price_top, price_bot, date_in from self_sto where date_out is null;")
+    cursor.execute("select code, price_in, price_top, price_bot, time_in from user_sto where time_out != 0;")
 
     global self_sto_pools
     for d in cursor.fetchall():
         code, price_in, top, bot, date_in = d
-        self_sto_pools[code] = StoCode(code, price_in, price_top=top, price_bot=bot, date_in=date_in)
+        self_sto_pools[code] = StoCode(code, unparse_price(price_in), price_top=unparse_price(top), price_bot=unparse_price(bot), time_in=time_in)
     logger.info("load_self_sto over, len:%s"%len(self_sto_pools))
 
 
 def init_sto_data():
     cursor = get_cursor()
-    cursor.execute("select code, price_in, price_top, price_bot, date_in from self_sto where date_out is null;")
+    cursor.execute("select code, price_in, price_top, price_bot, time_in from user_sto where time_out != 0;")
     global self_sto_pools
     for d in cursor.fetchall():
-        code, price_in, top, bot, date_in = d
-        self_sto_pools[code] = StoCode(code, price_in, price_top=top, price_bot=bot, date_in=date_in)
+        code, price_in, top, bot, time_in = d
+        self_sto_pools[code] = StoCode(code, unparse_price(price_in), price_top=unparse_price(top), price_bot=unparse_price(bot), time_in=time_in)
     logger.info("init_sto_data, load self sto, len:%s"%len(self_sto_pools))
 
-    sql = "select code from sto_code where type = %s;" % STO_TURNOVER_TYPE_UP5
+    sql = "select code from sto_code where type = %s;" % CFG.STO_TURNOVER_TYPE_UP5
     cursor.execute(sql)
     db_data = cursor.fetchall()
     count = 0

@@ -1,7 +1,7 @@
 [program:stoTor]
-command = /home/yyq/.stoEnv/bin/python /home/yyq/stoTor/main.py
-directory=/home/yyq/stoTor
-user=yyq
+command = /.virtualenv/bin/python /stoTor/main.py
+directory=/stoTor
+user=usero
 autostart=true
 autorestart=true
 startsecs=10

@@ -11,7 +11,7 @@ from email.mime.text import MIMEText
 from email.header import Header
 import smtplib
 from config import SrvConfig
-from data.log import logger
+from common.log import logger
 
 
 class EmailHandler(object):

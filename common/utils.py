@@ -3,9 +3,10 @@
 # @Time: 17-12-31
 # @Author: yyq
 
+import time
 from datetime import datetime, timedelta
 from random import randint
-from config import STO_TURNOVER, STO_TURNOVER_TYPE_UP5
+from config import CFG
 
 
 def get_time_inter(inter=1):
@@ -24,8 +25,34 @@ def get_today():
     return datetime.today().date()
 
 
+def get_today_time():
+    return int(time.mktime(get_today().timetuple()))
+
+
 def get_hour():
     return datetime.today().hour
+
+
+def get_time_now():
+    return int(time.time())
+
+
+def get_stamp(date_str, form="%Y-%m-%d"):
+    return int(time.mktime(datetime.strptime(date_str, form).timetuple()))
+
+
+def parse_price(price):
+    try:
+        return int(round(float(price), 2) *100)
+    except ValueError:
+        return 0
+
+
+def unparse_price(db_price):
+    try:
+        return str(db_price/100)
+    except ValueError:
+        return ""
 
 
 def check_cap_unit(cap):
@@ -65,5 +92,5 @@ def get_random(n=13):
 
 
 def check_sto_turnover(value):
-    if int(value) >= STO_TURNOVER:
-        return STO_TURNOVER_TYPE_UP5
+    if int(value) >= CFG.STO_TURNOVER:
+        return CFG.STO_TURNOVER_TYPE_UP5

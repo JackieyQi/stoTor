@@ -6,9 +6,9 @@
 import time
 import json
 import requests
-from utils import get_random, get_today
-from data.database import get_redis, get_cursor
-from data.log import logger
+from common.utils import get_random, get_today
+from common.database import get_redis, get_cursor
+from common.log import logger
 
 
 class RealTimeStoData(object):

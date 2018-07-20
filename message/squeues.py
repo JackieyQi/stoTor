@@ -4,7 +4,7 @@
 # @Author: yyq
 
 from message.scelery import celery_app
-from data.log import logger
+from common.log import logger
 from message.semail import send_email
 
 

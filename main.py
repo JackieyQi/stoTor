@@ -4,36 +4,39 @@
 # @Author: yyq
 
 import os
-import tcelery
+import json
+# import tcelery
 import tornado.ioloop
 import tornado.web
 import tornado.options
 import tornado.httpserver
-from data.log import logger
+from common.log import logger
 from views import handlers
 
-tornado.options.define("port", default=8000, help="run on the port.", type=int)
-tornado.options.define("ip", default="0.0.0.0", help="run on the address.", type=str)
-tornado.options.define("db", default="", help="database configuration")
-tornado.options.define("srv", default="", help="srv configuration")
+# tornado.options.define("cfg", default="", help="configuration", callback=lambda path:tornado.options.parse_config_file(os.path.abspath("")+"/gzrq.py", final=False))
+tornado.options.define("cfg", default="", help="configuration")
 
 
 def main():
-    print("******************* starting server ******************")
     logger.info("******************* starting server ******************")
-    tornado.options.parse_config_file(os.path.abspath("")+"/gzrq.cfg")
+    print("******************* starting server ******************")
+    tornado.options.parse_config_file(os.path.abspath("") + "/gzrq.py")
 
-    app = tornado.web.Application(handlers=handlers, debug=False)
+    from config import init_config
+    init_config(json.loads(tornado.options.options.cfg))
+
+    from config import CFG
+    app = tornado.web.Application(handlers=handlers, debug=CFG.debug)
     http_server = tornado.httpserver.HTTPServer(app, xheaders=True)
-    http_server.listen(tornado.options.options.port, tornado.options.options.ip)
+    http_server.listen(CFG.srv.port, CFG.srv.ip)
 
-    from message.scelery import celery_app
-    tcelery.setup_nonblocking_producer(celery_app=celery_app)
+    # from message.scelery import celery_app
+    # tcelery.setup_nonblocking_producer(celery_app=celery_app)
 
     from data.sto_code import init_sto_data
     init_sto_data()
 
-    from data.schedule import SScheduler
+    from message.schedule import SScheduler
     SScheduler().init_main_job()
 
     tornado.ioloop.IOLoop.instance().start()

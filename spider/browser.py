@@ -5,7 +5,7 @@
 
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
-from config import CHROME_BROWSER_PATH
+from config import CFG
 
 
 class SimulationChrome(object):
@@ -16,7 +16,7 @@ class SimulationChrome(object):
         browser_options = Options()
         browser_options.add_argument("--headless")
 
-        browser_path = CHROME_BROWSER_PATH
+        browser_path = CFG.CHROME_BROWSER_PATH
         self.browser = Chrome(executable_path=browser_path, chrome_options=browser_options)
         self.browser.set_page_load_timeout(10)
         self.browser.set_script_timeout(10)

@@ -7,32 +7,31 @@ from tornado.web import RequestHandler
 from tornado.httpclient import AsyncHTTPClient
 from tornado import gen
 from tornado import web
-from data.log import logger
+from common.log import logger
 
 
 class StoRequestHandler(RequestHandler):
     @web.asynchronous
     @gen.coroutine
     def get(self):
-        codes = self.get_argument("codes")
-        print(codes,type(codes))
-        #http_client = AsyncHTTPClient()
-        #resp = yield http_client.fetch("http://hq.sinajs.cn/list=%s" % codes)
-        #from real_quotes.mind import save_k_data
-        #save_k_data()
+        sto_codes = self.get_argument("codes", "")
+        if not sto_codes:
+            sto_codes = self.get_self_sto_codes()
 
-        from message.squeues import email
-        #email.delay("ttttttttttt","mmmmmmmmmmmmmmmmmm")
-        #resp = yield gen.Task(email.apply_async, args=["x_title", "y_msg"])
-        resp = yield gen.Task(email, "x_title", "y_msg")
-        self.write("result: %s" % resp)
+        print(sto_codes,type(sto_codes))
+        from spider.crawl import req_sina_stos
+        r = req_sina_stos(sto_codes)
+        self.write(r)
         self.finish()
+
+    def get_self_sto_codes(self):
+        return []
 
 
 class EMMarketCapUpdate(RequestHandler):
     @gen.coroutine
     def get(self):
-        from capital_flow.market_cap import save_single_sto
+        from data.capital_flow.market_cap import save_single_sto
         r = save_single_sto("000001")
         self.write("update over, r:%s \n" % repr(r))
 
@@ -65,14 +64,14 @@ class SelfStoHandler(RequestHandler):
 
 class LHBStoHandler(RequestHandler):
     def get(self):
-        from capital_flow.billboard import LhBillboard
+        from data.capital_flow.billboard import LhBillboard
         r = LhBillboard().get_list_ratio()
         self.write("LHB Billboard data, %s" % repr(r))
 
 
 class CommendStoHandler(RequestHandler):
     def get(self):
-        from capital_flow.market_cap import get_market_cap_change_data
+        from data.capital_flow.market_cap import get_market_cap_change_data
         a, _ = get_market_cap_change_data()
         self.write("commend data, %s" % repr(a))
 
@@ -93,7 +92,7 @@ class CronStoTurnover(RequestHandler):
 
 class CronMarketCap(RequestHandler):
     def put(self):
-        from capital_flow.market_cap import save_daily_market_cap
+        from data.capital_flow.market_cap import save_daily_market_cap
         r = save_daily_market_cap(clear=True)
         self.write("cron daily update market cap over, r:%s \n" % repr(r))
 

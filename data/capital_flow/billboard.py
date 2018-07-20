@@ -5,9 +5,9 @@
 
 import json
 import requests
-from utils import get_time_inter
-from data.database import get_redis
-from data.log import logger
+from common.utils import get_time_inter
+from common.database import get_redis
+from common.log import logger
 
 
 class LhBillboard(object):

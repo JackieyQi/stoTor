@@ -9,11 +9,11 @@
 
 import numpy
 from selenium.webdriver.common.action_chains import ActionChains
-from data.browser import SimulationChrome
-from data.database import get_cursor, get_redis
-from data.log import logger
-from utils import check_cap_unit, code_int2str
-from config import HSGTCG_EACH_PAGE_NUM, NORTH_SHARE_HOLD_DAILY_COUNT
+from spider.browser import SimulationChrome
+from common.database import get_cursor, get_redis
+from common.log import logger
+from common.utils import check_cap_unit, code_int2str, get_stamp
+from config import CFG
 
 
 class NorthShareHold(object):
@@ -51,7 +51,7 @@ class NorthShareHold(object):
 
             print("NorthShareHold get_north_data_daily data len:%s" % len(result))
             logger.info("NorthShareHold get_north_data_daily data len:%s" % len(result))
-            if 0 < len(result)-pre_length < HSGTCG_EACH_PAGE_NUM:
+            if 0 < len(result)-pre_length < CFG.HSGTCG_EACH_PAGE_NUM:
                 break
             pre_length = len(result)
 
@@ -68,7 +68,7 @@ class NorthShareHold(object):
         date, sto_code = ind_0[0], ind_0[1]
         sto_price, sto_up = ind_2[2], ind_2[3] + "%"
         sto_day_1, sto_day_5, sto_day_10 = check_cap_unit(ind_2[7]), check_cap_unit(ind_2[8]), check_cap_unit(ind_2[9])
-        return sto_code, sto_day_1, sto_day_5, sto_day_10, date
+        return sto_code, sto_day_1, sto_day_5, sto_day_10, get_stamp(date)
 
     def get_single_data(self, sto_code):
         """
@@ -83,7 +83,7 @@ class NorthShareHold(object):
         data = ele_data.split("\n")[6:]
 
         r = list()
-        for _s in data[:NORTH_SHARE_HOLD_DAILY_COUNT]:
+        for _s in data[:CFG.NORTH_SHARE_HOLD_DAILY_COUNT]:
             _d = _s.split(" ")
             date = _d[0]
             cap_1, cap_5, cap_10 = check_cap_unit(_d[-3]), check_cap_unit(_d[-2]), check_cap_unit(_d[-1])
@@ -167,12 +167,12 @@ def save_daily_market_cap(clear=False):
     if not data: return False
 
     if clear:
-        cursor.execute("delete from market_cap where date='%s';"%data[0][-1])
-    count = cursor.execute("SELECT id from market_cap where date='%s' LIMIT 1;"%data[0][-1])
+        cursor.execute("delete from sto_market_cap where create_time=%s;"%data[0][-1])
+    count = cursor.execute("SELECT id from sto_market_cap where create_time=%s LIMIT 1;"%data[0][-1])
     if count > 0:
         return True
 
-    sql = "insert into market_cap (code, cap1, cap5, cap10, date) values (%s, %s, %s, %s, %s);"
+    sql = "insert into sto_market_cap (code, cap1, cap5, cap10, create_time) values (%s, %s, %s, %s, %s);"
     cursor.executemany(sql, data)
     cursor.close()
 
@@ -185,14 +185,14 @@ def check_extra_daily_market_cap():
     note: only save 6 data to db.
     """
     cursor = get_cursor()
-    count = cursor.execute("select date from market_cap where code = '000001';")
-    if count <= NORTH_SHARE_HOLD_DAILY_COUNT:
+    count = cursor.execute("select create_time from sto_market_cap where code = '000001';")
+    if count <=CFG.NORTH_SHARE_HOLD_DAILY_COUNT:
         cursor.close()
         return False
     db_data = list(cursor.fetchall())
     db_data.sort()
-    _date = db_data[-NORTH_SHARE_HOLD_DAILY_COUNT][0]
-    cursor.execute("delete from market_cap where date < '%s';" % _date)
+    _time = db_data[-CFG.NORTH_SHARE_HOLD_DAILY_COUNT][0]
+    cursor.execute("delete from sto_market_cap where create_time < %s;" % _time)
     cursor.close()
     return True
 
@@ -232,7 +232,7 @@ def get_market_cap_tend(code, cap_lst):
     cap_lst.sort(key=lambda x:x[3])
     matrix = numpy.array(cap_lst)
 
-    #if matrix.shape[1] < NORTH_SHARE_HOLD_DAILY_COUNT:
+    #if matrix.shape[1] < CFG.NORTH_SHARE_HOLD_DAILY_COUNT:
     if matrix.shape[1] < 3:
         return False
 
