@@ -1,0 +1,58 @@
+#! /usr/bin/env python
+# coding: utf8
+# @Time: 17-12
+# @Author: yyq
+
+"""
+configuration set
+"""
+
+import os
+import json
+
+_cfg = dict(
+    debug=True,
+    srv=dict(
+        port="8888",
+        ip="0.0.0.0",
+    ),
+
+    db=dict(
+        mysql_host="localhost",
+        mysql_user="root",
+        mysql_pwd="pwd",
+        mysql_db="sto_adb",
+
+        redis_host="localhost",
+        redis_port="6379",
+        redis_db=0,
+    ),
+
+    email=dict(
+        sender="sender@email.com",
+        pwd="sender_pwd",
+        rcvr="rcvr@email.com",
+    ),
+
+    celery_broker_url="celery_broker_url",
+    celery_backend_url="celery_backend_url",
+    CHROME_BROWSER_PATH=os.path.dirname(os.path.abspath("")) + "/chromedriver_linux64/chromedriver",
+
+    # easyMoney config
+    HSGTCG_EACH_PAGE_NUM=50,
+    NORTH_SHARE_HOLD_DAILY_COUNT=6,
+
+    # sto code type
+    STO_TURNOVER_TYPE_UP5=1,
+    STO_TURNOVER=500000000,
+    STO_TURNOVER_COUNT=6,
+
+    # schedule config
+    SCHEDULE_JOBSTORES_URL="mysql+pymysql://%s:%s@%s/%s" % (
+        "root", "pwd", "localhost", "sto_adb"),
+    EXECUTOR_POOL_THREADS=10,
+    EXECUTOR_POOL_PROCESSES=5,
+
+)
+
+cfg = json.dumps(_cfg)
