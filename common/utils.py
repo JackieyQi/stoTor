@@ -21,12 +21,17 @@ def get_time_inter(inter=1):
         return str(today - timedelta(inter)), str(today)
 
 
+def get_timestamp():
+    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+
 def get_today():
     return datetime.today().date()
 
 
 def get_today_time():
-    return int(time.mktime(get_today().timetuple()))
+    #return int(time.mktime(get_today().timetuple()))
+    return datetime.now().strftime("%Y-%m-%d")
 
 
 def get_hour():

@@ -9,14 +9,16 @@ from config import CFG
 # from config import STO_TURNOVER, STO_TURNOVER_TYPE_UP5, STO_TURNOVER_COUNT
 from common.database import get_cursor, get_redis
 from common.log import logger
-from common.utils import (code_int2str, check_sto_turnover, get_today, get_today_time, get_time_now, parse_price, unparse_price)
+from common.utils import (code_int2str, check_sto_turnover, get_today,
+                          get_timestamp, get_today_time, get_time_now, parse_price, unparse_price)
 from spider.crawl import req_all_codes
 
 self_sto_pools = dict()
 
 
 class StoCode(object):
-    def __init__(self, code="", price_in="", price_out="", price_top="", price_bot="", time_in=get_time_now()):
+    def __init__(self, code="", price_in="", price_out="", price_top="",
+                 price_bot="", time_in=get_timestamp()):
         self.code = code
         self.price_in_str = price_in
         self.price_out_str = price_out
@@ -29,7 +31,7 @@ class StoCode(object):
 
 
     def __str__(self):
-        return json.dumps({"code":self.code,"price_in":self.price_in_str,"price_out":self.price_out_str,"top":self.price_top_str, "bot":self.price_bot_str, "time_in":self.time_in})
+        return json.dumps({"code":self.code,"price_in":self.price_in_str,"price_out":self.price_out_str,"top":self.price_top_str, "bot":self.price_bot_str, "time_in":self.time_in.strftime("%Y-%m-%d %H:%M:%s")})
 
     def is_exist_opt(self):
         if self.cursor.execute("select id from user_sto where code=%s"%self.code):
@@ -41,10 +43,11 @@ class StoCode(object):
         self.price_top_str = str(top)
         self.price_bot_str = str(bot)
         if self.is_exist_opt():
-            self.cursor.execute("update user_sto set price_in=%s,price_top=%s,price_bot=%s,time_in=%s where code='%s';"%(parse_price(self.price_in_str), parse_price(top), parse_price(bot), self.time_in, self.code))
+            self.time_in = get_timestamp()
+            self.cursor.execute("update user_sto set price_in=%s,price_top=%s,price_bot=%s,time_in='%s' where code='%s';"%(parse_price(self.price_in_str), parse_price(top), parse_price(bot), self.time_in, self.code))
             msg = "self sto in update, code:%s"%self.code
         else:
-            self.cursor.execute("insert into user_sto (code, price_in, price_top, price_bot, time_in) values('%s', %s, %s, %s, %s);"%(self.code, parse_price(self.price_in_str), parse_price(top), parse_price(bot), self.time_in))
+            self.cursor.execute("insert into user_sto (code, price_in, price_top, price_bot, time_in) values('%s', %s, %s, %s,'%s');"%(self.code, parse_price(self.price_in_str), parse_price(top), parse_price(bot), self.time_in))
             msg = "self sto in insert, code:%s"%self.code
         return msg
 
@@ -52,7 +55,7 @@ class StoCode(object):
         self.price_out_str = str(price)
 
         if self.is_exist_opt():
-            self.cursor.execute("update user_sto set price_out=%s,time_out=%s where code='%s';"%(parse_price(price), get_time_now(), self.code))
+            self.cursor.execute("update user_sto set price_out=%s,time_out='%s' where code='%s';"%(parse_price(price), get_timestamp(), self.code))
             msg = "self sto out over, code:%s"%self.code
         else:
             msg = "err self sto out, not exist, code:%s"%self.code
@@ -89,9 +92,9 @@ def save_sto_turnover():
     in_data = list()
     for k, v in data.items():
         name, symbol, money_amount = v
-        in_data.append([k, symbol, money_amount, today_time])
+        in_data.append([k, money_amount, today_time])
 
-    sql = "insert into sto_src_turnover (code, symbol, turnover, create_time) values (%s, %s, %s, %s);"
+    sql = "insert into sto_src_turnover (code, turnover, create_time) values (%s, %s, %s);"
     cursor.executemany(sql, in_data)
 
     count = cursor.execute("select create_time from sto_src_turnover where code = '000001';")

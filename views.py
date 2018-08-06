@@ -19,6 +19,7 @@ class StoRequestHandler(RequestHandler):
             sto_codes = self.get_self_sto_codes()
 
         print(sto_codes,type(sto_codes))
+        logger.info("Sto request, {}, {}".format(sto_codes, type(sto_codes)))
         from spider.crawl import req_sina_stos
         r = req_sina_stos(sto_codes)
         self.write(r)
@@ -41,14 +42,22 @@ class SelfStoHandler(RequestHandler):
     def get(self, *args, **kwargs):
         from data.sto_code import opt_self_sto
         code = self.get_argument("code", "")
+        #if not code:
+        #    return self.write({"result": False, "msg": "params err"})
         data = opt_self_sto(code, "")
         self.write({"result":True,"msg":data})
 
     @gen.coroutine
     def post(self):
         code, price = self.get_argument("code"), self.get_argument("price")
-        top = self.get_argument("top", round(float(price)*1.05,2))
-        bot = self.get_argument("bot", round(float(price)*0.95,2))
+        top = self.get_argument("top")
+        bot = self.get_argument("bot")
+        if not code or not price:
+            return self.write({"result":False, "msg":"params err"})
+        if not top:
+            top = round(float(price)*1.05, 2)
+        if not bot:
+            bot = round(float(price)*0.95, 2)
 
         from data.sto_code import opt_self_sto
         msg = opt_self_sto(code, price, top, bot)
@@ -57,6 +66,8 @@ class SelfStoHandler(RequestHandler):
     @gen.coroutine
     def put(self):
         code, price = self.get_argument("code"), self.get_argument("price")
+        if not code or not price:
+            return self.write({"result":False, "msg":"params err"})
         from data.sto_code import opt_self_sto
         msg = opt_self_sto(code, price)
         self.write({"result":True,"msg":msg})
