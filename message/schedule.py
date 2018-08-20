@@ -18,7 +18,10 @@ class SScheduler(object):
         job_defaults = {'coalesce': False, 'max_instances': 3}
 
         self.logger = logger
-        self.scheduler = TornadoScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults)
+        self.scheduler = TornadoScheduler(jobstores=jobstores,
+                                          executors=executors,
+                                          job_defaults=job_defaults,
+                                          timezone="Asia/Shanghai")
         self.scheduler.start()
         self.init_listener()
 
@@ -44,6 +47,10 @@ class SScheduler(object):
         from data.capital_flow.market_cap import save_daily_market_cap
         self.scheduler.add_job(save_daily_market_cap, "cron", day_of_week="tue-sat", hour=9)
 
+        # 早间通报
+        from plot.real_analysis import send_morning_sum_email
+        self.scheduler.add_job(send_morning_sum_email, "cron", day_of_week="mon-fri", hour=9, minute=38)
+
         self.init_real_job()
 
     def init_real_job(self):
@@ -51,4 +58,8 @@ class SScheduler(object):
         self.scheduler.add_job(save_k_data, "cron", day_of_week="mon-fri", hour="9-14", minute="*/3")
 
         self.scheduler.add_job(clear_k_data, "cron", day_of_week="mon-fri", hour="20")
+
+        from plot.real_analysis import send_trend_email
+        self.scheduler.add_job(send_trend_email, "cron", day_of_week="mon-fri",
+                               hour="9-14", minute="*/6")
 

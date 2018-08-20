@@ -54,7 +54,7 @@ class RealTimeStoData(object):
             r = self.get_k_data(code_str, scale=5)
             if r:
                 logger.info("RealTimeStoData save_k_data, code:%s"%code_str)
-                self.redis.rpush(code_str, r)
+                self.redis.rpush(code_str, json.dumps(r))
 
     def is_exist_k(self, code_str, r):
         last_r = self.redis.lindex(code_str, -1)

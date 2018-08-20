@@ -4,6 +4,15 @@ grant all privileges on sto_adb.* to ster@localhost identified by '111111';
 
 flush privileges;
 
+CREATE TABLE IF NOT EXISTS `sto_adb`.`user` (
+	  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+	  `mail` varchar(30) NOT NULL DEFAULT '',
+	  `phone` varchar(30) NOT NULL DEFAULT '',
+	  `status` tinyint(1) NOT NULL DEFAULT 0,
+	  `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	  PRIMARY KEY (`id`)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 CREATE TABLE IF NOT EXISTS `sto_adb`.`user_sto` (
 	  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
 	  `code` char(6) NOT NULL DEFAULT '' COMMENT '000001',

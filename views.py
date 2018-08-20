@@ -108,7 +108,17 @@ class CronMarketCap(RequestHandler):
         self.write("cron daily update market cap over, r:%s \n" % repr(r))
 
 
+class TestApi(RequestHandler):
+    def get(self):
+        from plot.real_analysis import send_morning_sum_email, send_trend_email
+        #send_morning_sum_email()
+        print("next func")
+        send_trend_email()
+        self.write("test api over")
+
+
 common_handlers = [
+    (r"/test", TestApi),
     (r"/sto", StoRequestHandler),
     # (r"/emUpdate", EMMarketCapUpdate),
     (r"/selfSto", SelfStoHandler),

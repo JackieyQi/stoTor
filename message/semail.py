@@ -10,7 +10,7 @@ from tornado import gen
 from email.mime.text import MIMEText
 from email.header import Header
 import smtplib
-from config import SrvConfig
+from config import CFG
 from common.log import logger
 
 
@@ -23,21 +23,25 @@ class EmailHandler(object):
     def get_server(self):
         server = smtplib.SMTP_SSL("smtp.126.com", 465)
         server.set_debuglevel(0)
-        server.login(SrvConfig.email_sender, SrvConfig.email_pwd)
+        #server.starttls()
+        server.ehlo()
+        server.login(CFG.email.sender, CFG.email.pwd)
         return server
 
     def get_text(self, title="default", msg="no content"):
-        text = MIMEText(msg)
+        text = MIMEText(msg, "html", "utf8")
         text["Subject"] = Header(title, "utf8")
-        text["From"] = SrvConfig.email_sender
-        text["To"] = SrvConfig.email_rcvr
+        text["Accept-Language"] = "zh-CN"
+        text["Accept-Charset"] = "ISO-8859-1, utf8"
+        text["From"] = CFG.email.sender
+        text["To"] = CFG.email.rcvr
         return text
 
     def send(self, title="default", msg="no content"):
         logger.info("EmailHandler, start send")
         msg = self.get_text(title, msg)
         server = self.get_server()
-        server.sendmail(SrvConfig.email_sender, [SrvConfig.email_rcvr,], msg.as_string())
+        server.sendmail(CFG.email.sender, [CFG.email.rcvr,], msg.as_string())
         server.quit()
         logger.info("EmailHandler, end send")
         return "email sent"
