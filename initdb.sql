@@ -9,12 +9,14 @@ CREATE TABLE IF NOT EXISTS `sto_adb`.`user` (
 	  `mail` varchar(30) NOT NULL DEFAULT '',
 	  `phone` varchar(30) NOT NULL DEFAULT '',
 	  `status` tinyint(1) NOT NULL DEFAULT 0,
+      `extra` varchar(50) NOT NULL DEFAULT '',
 	  `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	  PRIMARY KEY (`id`)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `sto_adb`.`user_sto` (
 	  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+      `user_id` int(10) unsigned NOT NULL DEFAULT 0,
 	  `code` char(6) NOT NULL DEFAULT '' COMMENT '000001',
 	  `price_in` smallint(5) unsigned NOT NULL DEFAULT 0 COMMENT '100.01to10001',
 	  `price_out` smallint(5) unsigned NOT NULL DEFAULT 0,
@@ -22,7 +24,8 @@ CREATE TABLE IF NOT EXISTS `sto_adb`.`user_sto` (
 	  `price_bot` smallint(5) unsigned NOT NULL DEFAULT 0,
 	  `time_in` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	  `time_out` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	  PRIMARY KEY (`id`)
+	  PRIMARY KEY (`id`),
+      KEY `user_id` (`user_id`)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `sto_adb`.`user_profit` (

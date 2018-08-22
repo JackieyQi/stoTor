@@ -12,13 +12,15 @@ from common.log import logger
 from common.utils import (code_int2str, check_sto_turnover, get_today,
                           get_timestamp, get_today_time, get_time_now, parse_price, unparse_price)
 from spider.crawl import req_all_codes
+from data.user import init_user
 
 self_sto_pools = dict()
 
 
 class StoCode(object):
-    def __init__(self, code="", price_in="", price_out="", price_top="",
+    def __init__(self, user_id, code="", price_in="", price_out="", price_top="",
                  price_bot="", time_in=get_timestamp()):
+        self.user_id = user_id
         self.code = code
         self.price_in_str = price_in
         self.price_out_str = price_out
@@ -149,12 +151,14 @@ def load_self_sto():
 
 
 def init_sto_data():
+    init_user()
+
     cursor = get_cursor()
-    cursor.execute("select code, price_in, price_top, price_bot, time_in from user_sto where time_out != 0;")
+    cursor.execute("select user_id, code, price_in, price_top, price_bot, time_in from user_sto where time_out != 0;")
     global self_sto_pools
     for d in cursor.fetchall():
-        code, price_in, top, bot, time_in = d
-        self_sto_pools[code] = StoCode(code, unparse_price(price_in), price_top=unparse_price(top), price_bot=unparse_price(bot), time_in=time_in)
+        user_id, code, price_in, top, bot, time_in = d
+        self_sto_pools[code] = StoCode(user_id, code, unparse_price(price_in), price_top=unparse_price(top), price_bot=unparse_price(bot), time_in=time_in)
     logger.info("init_sto_data, load self sto, len:%s"%len(self_sto_pools))
 
     sql = "select code from sto_code where type = %s;" % CFG.STO_TURNOVER_TYPE_UP5
