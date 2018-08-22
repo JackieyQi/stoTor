@@ -12,13 +12,14 @@ def get_redis_sto_keys():
     lst = []
 
     from data.sto_code import self_sto_pools
-    for code in self_sto_pools.keys():
-        if code[0] == "6":
-            sto_code = "sh" + code
-        elif code[0] in ("0", "2"):
-            sto_code = "sz" + code
-        else:
-            sto_code = code
+    for user_id, stos in self_sto_pools.items():
+        for code in stos.keys():
+            if code[0] == "6":
+                sto_code = "sh" + code
+            elif code[0] in ("0", "2"):
+                sto_code = "sz" + code
+            else:
+                sto_code = code
         lst.append(sto_code)
     return lst
 

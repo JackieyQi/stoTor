@@ -30,3 +30,11 @@ def init_user():
         user_pools[user_id] = UserObj(user_id, status, mail=mail, phone=phone)
     logger.info("init_user, users count:{}".format(len(user_pools)))
 
+
+def admin_get_all_users(key=None):
+    if key != "188":
+        return
+
+    global user_pools
+    return json.dumps(user_pools.items())
+

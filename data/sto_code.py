@@ -33,10 +33,11 @@ class StoCode(object):
 
 
     def __str__(self):
-        return json.dumps({"code":self.code,"price_in":self.price_in_str,"price_out":self.price_out_str,"top":self.price_top_str, "bot":self.price_bot_str, "time_in":self.time_in.strftime("%Y-%m-%d %H:%M:%s")})
+        return json.dumps({"user": self.user_id, "code":self.code,"price_in":self.price_in_str,"price_out":self.price_out_str,"top":self.price_top_str, "bot":self.price_bot_str, "time_in":self.time_in.strftime("%Y-%m-%d %H:%M:%s")})
 
     def is_exist_opt(self):
-        if self.cursor.execute("select id from user_sto where code=%s"%self.code):
+        if self.cursor.execute("select id from user_sto where user_id = %s and"
+                               "code=%s" % (self.user_id, self.code)):
             return True
         else:
             return False
@@ -46,10 +47,17 @@ class StoCode(object):
         self.price_bot_str = str(bot)
         if self.is_exist_opt():
             self.time_in = get_timestamp()
-            self.cursor.execute("update user_sto set price_in=%s,price_top=%s,price_bot=%s,time_in='%s' where code='%s';"%(parse_price(self.price_in_str), parse_price(top), parse_price(bot), self.time_in, self.code))
+            self.cursor.execute("update user_sto set"
+                                "price_in=%s,price_top=%s,price_bot=%s,time_in='%s'"
+                                "where user_id = %s and"
+                                "code='%s';"%(parse_price(self.price_in_str),
+                                parse_price(top), parse_price(bot),
+                                self.time_in, self.user_id, self.code))
             msg = "self sto in update, code:%s"%self.code
         else:
-            self.cursor.execute("insert into user_sto (code, price_in, price_top, price_bot, time_in) values('%s', %s, %s, %s,'%s');"%(self.code, parse_price(self.price_in_str), parse_price(top), parse_price(bot), self.time_in))
+            self.cursor.execute("insert into user_sto (user_id, code, price_in,"
+                                "price_top, price_bot, time_in) values(%s,"
+                                "'%s', %s, %s, %s,'%s');"%(self.user_id, self.code, parse_price(self.price_in_str), parse_price(top), parse_price(bot), self.time_in))
             msg = "self sto in insert, code:%s"%self.code
         return msg
 
@@ -57,7 +65,11 @@ class StoCode(object):
         self.price_out_str = str(price)
 
         if self.is_exist_opt():
-            self.cursor.execute("update user_sto set price_out=%s,time_out='%s' where code='%s';"%(parse_price(price), get_timestamp(), self.code))
+            self.cursor.execute("update user_sto set"
+                                "price_out=%s,time_out='%s'"
+                                "where user_id = %s and"
+                                "code='%s';"%(parse_price(price),
+                                get_timestamp(), self.user_id, self.code))
             msg = "self sto out over, code:%s"%self.code
         else:
             msg = "err self sto out, not exist, code:%s"%self.code
@@ -117,50 +129,61 @@ def save_sto_turnover():
     return True
 
 
-def opt_self_sto(code, price, top="", bot=""):
+def opt_self_sto(user_id, code, price, top="", bot=""):
     global self_sto_pools
 
     if price == "":
-        if code not in self_sto_pools:
-            return [str(v) for v in self_sto_pools.values()]
+        # GET method
+        user_stos_dict = self_sto_pools.get(user_id, {})
+        if code not in user_stos_dict:
+            return [str(v) for v in user_stos_dict.values()]
         else:
-            return [str(self_sto_pools.get(code))]
+            return [str(user_stos_dict.get(code))]
 
     elif top == "":
-        sto = self_sto_pools.get(code)
+        # PUT method, sell out
+        user_stos_dict = self_sto_pools.get(user_id, {})
+        sto = user_stos_dict.get(code)
         if not sto:
-            return "out err, no sto in cache, code:%s"%code
+            return "out err, no sto in cache, user:%s code:%s"%(user_id, code)
         msg = sto.out(price)
-        del self_sto_pools[code]
+        del user_stos_dict[code]
+        if not user_stos_dict:
+            del self_sto_pools[user_id]
+        else:
+            self_sto_pools[user_id] = user_stos_dict
 
     else:
-        sto = self_sto_pools.get(code, StoCode(code, price_in=price))
+        # POST method
+        user_stos_dict = self_sto_pools.get(user_id, {})
+        sto = user_stos_dict.get(code, StoCode(user_id, code, price_in=price))
         msg = sto.add(top, bot)
-        self_sto_pools[code] = sto
+        user_stos_dict[code] = sto
+        self_sto_pools[user_id] = user_stos_dict
     return msg
 
 def load_self_sto():
     cursor = get_cursor()
-    cursor.execute("select code, price_in, price_top, price_bot, time_in from user_sto where time_out != 0;")
+    cursor.execute("select user_id, code, price_in, price_top, price_bot, time_in from user_sto where time_out != 0;")
 
     global self_sto_pools
     for d in cursor.fetchall():
-        code, price_in, top, bot, date_in = d
-        self_sto_pools[code] = StoCode(code, unparse_price(price_in), price_top=unparse_price(top), price_bot=unparse_price(bot), time_in=time_in)
+        user_id, code, price_in, top, bot, time_in = d
+        user_stos_dict = self_sto_pools.get(user_id, {})
+        user_stos_dict[code] = StoCode(user_id, code,
+                                            unparse_price(price_in),
+                                            price_top=unparse_price(top),
+                                            price_bot=unparse_price(bot),
+                                            time_in=time_in)
+        self_sto_pools[user_id] = user_stos_dict
     logger.info("load_self_sto over, len:%s"%len(self_sto_pools))
 
 
 def init_sto_data():
     init_user()
+    load_self_sto()
 
     cursor = get_cursor()
-    cursor.execute("select user_id, code, price_in, price_top, price_bot, time_in from user_sto where time_out != 0;")
-    global self_sto_pools
-    for d in cursor.fetchall():
-        user_id, code, price_in, top, bot, time_in = d
-        self_sto_pools[code] = StoCode(user_id, code, unparse_price(price_in), price_top=unparse_price(top), price_bot=unparse_price(bot), time_in=time_in)
-    logger.info("init_sto_data, load self sto, len:%s"%len(self_sto_pools))
-
     sql = "select code from sto_code where type = %s;" % CFG.STO_TURNOVER_TYPE_UP5
     cursor.execute(sql)
     db_data = cursor.fetchall()

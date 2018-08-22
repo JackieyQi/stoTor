@@ -41,18 +41,20 @@ class SelfStoHandler(RequestHandler):
     @gen.coroutine
     def get(self, *args, **kwargs):
         from data.sto_code import opt_self_sto
-        code = self.get_argument("code", "")
-        #if not code:
-        #    return self.write({"result": False, "msg": "params err"})
-        data = opt_self_sto(code, "")
+
+        user_id, code = self.get_argument("user"), self.get_argument("code", "")
+        if not user_id:
+            return self.write({"result": False, "msg": "params err"})
+
+        data = opt_self_sto(user_id, code, "")
         self.write({"result":True,"msg":data})
 
     @gen.coroutine
     def post(self):
-        code, price = self.get_argument("code"), self.get_argument("price")
+        user_id, code, price = self.get_argument("user"), self.get_argument("code"), self.get_argument("price")
         top = self.get_argument("top")
         bot = self.get_argument("bot")
-        if not code or not price:
+        if not user_id or not code or not price:
             return self.write({"result":False, "msg":"params err"})
         if not top:
             top = round(float(price)*1.05, 2)
@@ -60,7 +62,7 @@ class SelfStoHandler(RequestHandler):
             bot = round(float(price)*0.95, 2)
 
         from data.sto_code import opt_self_sto
-        msg = opt_self_sto(code, price, top, bot)
+        msg = opt_self_sto(user_id, code, price, top, bot)
         self.write({"result":True,"msg":msg})
 
     @gen.coroutine
@@ -85,6 +87,16 @@ class CommendStoHandler(RequestHandler):
         from data.capital_flow.market_cap import get_market_cap_change_data
         a, _ = get_market_cap_change_data()
         self.write("commend data, %s" % repr(a))
+
+
+class AdminUserHandler(RequestHandler):
+    @gen.coroutine
+    def get(self):
+        from data.user import admin_get_all_users
+
+        key_code = self.get_argument("key", "")
+        r = admin_get_all_users(key_code)
+        self.write({"result": True, "users": r})
 
 
 class CronStoCode(RequestHandler):
@@ -124,6 +136,8 @@ common_handlers = [
     (r"/selfSto", SelfStoHandler),
     (r"/lhbSto", LHBStoHandler),
     (r"/commendSto", CommendStoHandler),
+
+    (r"/admin/user", AdminUserHandler),
 ]
 
 cron_handlers = [
