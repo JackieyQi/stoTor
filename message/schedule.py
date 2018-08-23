@@ -8,7 +8,8 @@ from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
 from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
 from config import CFG
-# from config import SCHEDULE_JOBSTORES_URL, EXECUTOR_POOL_THREADS, EXECUTOR_POOL_PROCESSES
+from common.log import logger
+
 
 class SScheduler(object):
     def __init__(self, logger=None):
@@ -30,10 +31,9 @@ class SScheduler(object):
 
     def listener(self, event):
         if event.exception:
-            print("job exception")
-            # log
+            logger.error("job exception, event:{}".format(event))
         else:
-            print("job over")
+            logger.info("job over, event:{}".format(event))
 
     def init_main_job(self):
         from data.sto_code import init_sto_data
