@@ -46,6 +46,17 @@ class EmailHandler(object):
         logger.info("EmailHandler, end send")
         return "email sent"
 
+    def multi_send(self, user_msgs):
+        logger.info("EmailHandler, start multi send")
+        server = self.get_server()
+        for user_email, v in user_msgs.items():
+            title, msg = v
+            msg = self.get_text(title, msg)
+            server.sendmail(CFG.email.sender, [user_email], msg.as_string())
+
+        server.quit()
+        logger.info("EmailHandler, end multi send")
+
 
 class StoRequestHandler(RequestHandler):
     @gen.coroutine
@@ -54,6 +65,11 @@ class StoRequestHandler(RequestHandler):
         print(codes,type(codes))
         #http_client = AsyncHTTPClient()
 
+
 def send_email(title, msg):
     return EmailHandler().send(title, msg)
+
+
+def send_multi_emails(user_msgs):
+    return EmailHandler().multi_send(user_msgs)
 
