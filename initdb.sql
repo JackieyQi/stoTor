@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS `sto_adb`.`user_sto` (
 
 CREATE TABLE IF NOT EXISTS `sto_adb`.`user_profit` (
 	  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+	  `user_id` int(10) unsigned NOT NULL DEFAULT 0,
 	  `start_ass` mediumint(7) NOT NULL DEFAULT 0,
 	  `end_ass` mediumint(7) NOT NULL DEFAULT 0,
 	  `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,

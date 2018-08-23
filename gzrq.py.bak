@@ -36,7 +36,7 @@ _cfg = dict(
 
     celery_broker_url="celery_broker_url",
     celery_backend_url="celery_backend_url",
-    CHROME_BROWSER_PATH=os.path.dirname(os.path.abspath("")) + "/chromedriver_linux64/chromedriver",
+    CHROME_BROWSER_PATH=os.path.dirname(os.path.abspath("")) + "/../.pyenv/bin/chromedriver",
 
     # easyMoney config
     HSGTCG_EACH_PAGE_NUM=50,
